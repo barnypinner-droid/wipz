@@ -13,12 +13,13 @@ import { supabase } from '../lib/supabase';
 import type { Tables } from '../lib/database.types';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES } from '../constants/wipTypes';
-import { listMembers, addMemberByEmail, type WipMember } from '../lib/members';
-import { listRules, addRule, type WipRule } from '../lib/rules';
+import { ProgressRing } from '../components/ProgressRing';
+import { listMembers, addMemberByEmail, removeMember, type WipMember } from '../lib/members';
+import { listRules, addRule, deleteRule, type WipRule } from '../lib/rules';
 import {
   listOccurrences,
   createOccurrence,
-  listMyRsvpsForWhip,
+  listRsvps,
   setRsvp,
   type WipOccurrence,
   type WipRsvp,
@@ -48,17 +49,34 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function WipDetailScreen({ wipId, session, onBack }: { wipId: string; session: Session; onBack: () => void }) {
+function rsvpLabel(status: string | undefined) {
+  if (status === 'in') return "I'm in";
+  if (status === 'out') return "I'm out";
+  return 'Pending';
+}
+
+export function WipDetailScreen({
+  wipId,
+  session,
+  onBack,
+  startInEdit,
+}: {
+  wipId: string;
+  session: Session;
+  onBack: () => void;
+  startInEdit?: boolean;
+}) {
   const [wip, setWip] = useState<Whip | null>(null);
   const [members, setMembers] = useState<WipMember[]>([]);
   const [rules, setRules] = useState<WipRule[]>([]);
   const [occurrences, setOccurrences] = useState<WipOccurrence[]>([]);
-  const [myRsvps, setMyRsvps] = useState<WipRsvp[]>([]);
+  const [occurrenceRsvps, setOccurrenceRsvps] = useState<WipRsvp[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [invites, setInvites] = useState<WipInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(!!startInEdit);
 
   const [memberEmail, setMemberEmail] = useState('');
   const [showAddMember, setShowAddMember] = useState(false);
@@ -97,13 +115,16 @@ export function WipDetailScreen({ wipId, session, onBack }: { wipId: string; ses
       setTransactions(transactionList);
       setWithdrawalRequests(requestList);
       setInvites(inviteList);
-      setMyRsvps(await listMyRsvpsForWhip(wipId, session.user.id));
+
+      // occurrenceList is sorted newest-first, so [0] is the current/latest week.
+      const latest = occurrenceList[0];
+      setOccurrenceRsvps(latest ? await listRsvps(latest.id) : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load wip.');
     } finally {
       setLoading(false);
     }
-  }, [wipId, session.user.id]);
+  }, [wipId]);
 
   useEffect(() => {
     load();
@@ -111,6 +132,13 @@ export function WipDetailScreen({ wipId, session, onBack }: { wipId: string; ses
 
   const myMembership = members.find((m) => m.user_id === session.user.id);
   const isStaff = myMembership?.role === 'organiser' || myMembership?.role === 'treasurer';
+  const latestOccurrence = occurrences[0];
+
+  function paidInBy(userId: string) {
+    return transactions
+      .filter((t) => t.user_id === userId && t.type === 'contribution' && t.status === 'success')
+      .reduce((sum, t) => sum + t.amount, 0);
+  }
 
   async function runAction(action: () => Promise<void>) {
     try {
@@ -138,98 +166,32 @@ export function WipDetailScreen({ wipId, session, onBack }: { wipId: string; ses
       <Text style={styles.title}>{wip.title}</Text>
       <Text style={styles.typeBadge}>{WIP_TYPES.find((t) => t.value === wip.type)?.label ?? wip.type}</Text>
       <Text style={styles.purpose}>{wip.purpose}</Text>
-      <Text style={styles.balance}>
-        {formatPence(wip.current_balance)} / {formatPence(wip.target_balance)}
-      </Text>
       {wip.deadline && <Text style={styles.deadline}>By {wip.deadline}</Text>}
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      <ProgressRing current={wip.current_balance} target={wip.target_balance} />
 
-      {/* Members */}
-      <Text style={styles.sectionTitle}>Members</Text>
-      {members.map((member) => (
-        <View key={member.id} style={styles.row}>
-          <Text style={styles.rowText}>{member.users?.full_name ?? member.users?.email}</Text>
-          <Text style={styles.rowMeta}>{member.role}</Text>
-        </View>
-      ))}
       {isStaff && (
-        <>
-          {showAddMember ? (
-            <View style={styles.form}>
-              <TextInput
-                style={styles.input}
-                placeholder="Member's email"
-                placeholderTextColor="#64748b"
-                autoCapitalize="none"
-                value={memberEmail}
-                onChangeText={setMemberEmail}
-              />
-              <Pressable
-                style={styles.smallButton}
-                onPress={() =>
-                  runAction(async () => {
-                    await addMemberByEmail(wipId, memberEmail.trim());
-                    setMemberEmail('');
-                    setShowAddMember(false);
-                  })
-                }
-              >
-                <Text style={styles.smallButtonText}>Add</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable onPress={() => setShowAddMember(true)}>
-              <Text style={styles.link}>+ Add member</Text>
-            </Pressable>
-          )}
-
-          {invites.map((invite) => (
-            <View key={invite.id} style={styles.row}>
-              <Text style={styles.rowText}>{invite.phone}</Text>
-              <Text style={styles.rowMeta}>{invite.status === 'accepted' ? 'joined' : 'invited'}</Text>
-            </View>
-          ))}
-          {showInvite ? (
-            <View style={styles.form}>
-              <TextInput
-                style={styles.input}
-                placeholder="+447123456789"
-                placeholderTextColor="#64748b"
-                keyboardType="phone-pad"
-                value={invitePhone}
-                onChangeText={setInvitePhone}
-              />
-              <Pressable
-                style={styles.smallButton}
-                onPress={() =>
-                  runAction(async () => {
-                    await sendWipInvite(wipId, invitePhone.trim());
-                    setInvitePhone('');
-                    setShowInvite(false);
-                  })
-                }
-              >
-                <Text style={styles.smallButtonText}>Send WhatsApp invite</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable onPress={() => setShowInvite(true)}>
-              <Text style={styles.link}>+ Invite by WhatsApp (no account needed yet)</Text>
-            </Pressable>
-          )}
-        </>
+        <Pressable style={styles.editToggle} onPress={() => setEditing((e) => !e)}>
+          <Text style={styles.editToggleText}>{editing ? 'Done editing' : 'Edit wip settings'}</Text>
+        </Pressable>
       )}
+
+      {error && <Text style={styles.error}>{error}</Text>}
 
       {/* Rules */}
       <Text style={styles.sectionTitle}>Rules</Text>
       {rules.length === 0 && <Text style={styles.emptyText}>No rules set yet.</Text>}
       {rules.map((rule) => (
-        <Text key={rule.id} style={styles.ruleText}>
-          • {rule.rule_text}
-        </Text>
+        <View key={rule.id} style={styles.ruleRow}>
+          <Text style={styles.ruleText}>• {rule.rule_text}</Text>
+          {editing && (
+            <Pressable onPress={() => runAction(() => deleteRule(rule.id))}>
+              <Text style={styles.deleteLink}>Remove</Text>
+            </Pressable>
+          )}
+        </View>
       ))}
-      {isStaff && (
+      {editing && (
         <>
           {showAddRule ? (
             <View style={styles.form}>
@@ -261,79 +223,179 @@ export function WipDetailScreen({ wipId, session, onBack }: { wipId: string; ses
         </>
       )}
 
-      {/* RSVP for recurring wips */}
-      {wip.type === 'recurring' && (
-        <>
-          <Text style={styles.sectionTitle}>Weekly RSVP</Text>
-          {wip.contribution_amount == null && (
-            <Text style={styles.emptyText}>
-              Set a per-week amount when editing this wip to enable payment requests.
-            </Text>
-          )}
-          {occurrences.map((occurrence) => {
-            const myRsvp = myRsvps.find((r) => r.occurrence_id === occurrence.id);
-            const pendingContribution = transactions.find(
-              (t) => t.occurrence_id === occurrence.id && t.user_id === session.user.id && t.status === 'pending',
-            );
-            return (
-              <View key={occurrence.id} style={styles.row}>
-                <Text style={styles.rowText}>{occurrence.occurs_on}</Text>
-                <View style={styles.rsvpButtons}>
+      {/* Members */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Members</Text>
+        {isStaff && wip.type === 'recurring' && !showAddOccurrence && (
+          <Pressable onPress={() => setShowAddOccurrence(true)}>
+            <Text style={styles.link}>+ Open this week's RSVP</Text>
+          </Pressable>
+        )}
+      </View>
+      {isStaff && wip.type === 'recurring' && showAddOccurrence && (
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="#64748b"
+            value={occurrenceDate}
+            onChangeText={setOccurrenceDate}
+          />
+          <Pressable
+            style={styles.smallButton}
+            onPress={() =>
+              runAction(async () => {
+                await createOccurrence(wipId, occurrenceDate);
+                setShowAddOccurrence(false);
+              })
+            }
+          >
+            <Text style={styles.smallButtonText}>Open RSVP</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {members.map((member) => {
+        const isMe = member.user_id === session.user.id;
+        const paidIn = paidInBy(member.user_id);
+        const myRsvp = latestOccurrence
+          ? occurrenceRsvps.find((r) => r.user_id === member.user_id)
+          : undefined;
+        const pendingContribution = latestOccurrence
+          ? transactions.find(
+              (t) =>
+                t.occurrence_id === latestOccurrence.id &&
+                t.user_id === member.user_id &&
+                t.status === 'pending',
+            )
+          : undefined;
+
+        return (
+          <View key={member.id} style={styles.memberRow}>
+            <View style={styles.memberHeader}>
+              <Text style={styles.rowText}>{member.users?.full_name ?? member.users?.email}</Text>
+              <View style={styles.memberHeaderRight}>
+                <Text style={styles.rowMeta}>{member.role}</Text>
+                {!isMe && (
                   <Pressable
-                    style={[styles.rsvpButton, myRsvp?.status === 'in' && styles.rsvpButtonActiveIn]}
-                    onPress={() => runAction(() => setRsvp(occurrence.id, 'in'))}
+                    style={styles.nudgeIcon}
+                    onPress={() =>
+                      runAction(() =>
+                        sendNudge(wipId, `Reminder from ${wip.title} on Wipz.`, member.user_id),
+                      )
+                    }
                   >
-                    <Text style={styles.rsvpButtonText}>I'm in</Text>
+                    <Text style={styles.nudgeIconText}>🔔</Text>
                   </Pressable>
-                  <Pressable
-                    style={[styles.rsvpButton, myRsvp?.status === 'out' && styles.rsvpButtonActiveOut]}
-                    onPress={() => runAction(() => setRsvp(occurrence.id, 'out'))}
-                  >
-                    <Text style={styles.rsvpButtonText}>I'm out</Text>
+                )}
+                {editing && !isMe && (
+                  <Pressable onPress={() => runAction(() => removeMember(member.id))}>
+                    <Text style={styles.deleteLink}>Remove</Text>
                   </Pressable>
-                </View>
-                {pendingContribution && (
+                )}
+              </View>
+            </View>
+            <Text style={styles.rowMeta}>Paid in: {formatPence(paidIn)}</Text>
+
+            {wip.type === 'recurring' && latestOccurrence && (
+              <>
+                {isMe ? (
+                  <View style={styles.rsvpButtons}>
+                    <Pressable
+                      style={[styles.rsvpButton, myRsvp?.status === 'in' && styles.rsvpButtonActiveIn]}
+                      onPress={() => runAction(() => setRsvp(latestOccurrence.id, 'in'))}
+                    >
+                      <Text style={styles.rsvpButtonText}>I'm in</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.rsvpButton, myRsvp?.status === 'out' && styles.rsvpButtonActiveOut]}
+                      onPress={() => runAction(() => setRsvp(latestOccurrence.id, 'out'))}
+                    >
+                      <Text style={styles.rsvpButtonText}>I'm out</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.rowMeta}>RSVP: {rsvpLabel(myRsvp?.status)}</Text>
+                )}
+                {pendingContribution && isMe && (
                   <Pressable
                     style={styles.smallButton}
                     onPress={() => runAction(() => payPendingContribution(pendingContribution.id))}
                   >
-                    <Text style={styles.smallButtonText}>
-                      Pay {formatPence(pendingContribution.amount)}
-                    </Text>
+                    <Text style={styles.smallButtonText}>Pay {formatPence(pendingContribution.amount)}</Text>
                   </Pressable>
                 )}
-              </View>
-            );
-          })}
-          {isStaff && (
-            <>
-              {showAddOccurrence ? (
-                <View style={styles.form}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#64748b"
-                    value={occurrenceDate}
-                    onChangeText={setOccurrenceDate}
-                  />
-                  <Pressable
-                    style={styles.smallButton}
-                    onPress={() =>
-                      runAction(async () => {
-                        await createOccurrence(wipId, occurrenceDate);
-                        setShowAddOccurrence(false);
-                      })
-                    }
-                  >
-                    <Text style={styles.smallButtonText}>Open RSVP</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <Pressable onPress={() => setShowAddOccurrence(true)}>
-                  <Text style={styles.link}>+ Open this week's RSVP</Text>
-                </Pressable>
-              )}
-            </>
+              </>
+            )}
+          </View>
+        );
+      })}
+
+      {editing && (
+        <>
+          {invites.map((invite) => (
+            <View key={invite.id} style={styles.row}>
+              <Text style={styles.rowText}>{invite.phone}</Text>
+              <Text style={styles.rowMeta}>{invite.status === 'accepted' ? 'joined' : 'invited'}</Text>
+            </View>
+          ))}
+
+          {showAddMember ? (
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Member's email"
+                placeholderTextColor="#64748b"
+                autoCapitalize="none"
+                value={memberEmail}
+                onChangeText={setMemberEmail}
+              />
+              <Pressable
+                style={styles.smallButton}
+                onPress={() =>
+                  runAction(async () => {
+                    await addMemberByEmail(wipId, memberEmail.trim());
+                    setMemberEmail('');
+                    setShowAddMember(false);
+                  })
+                }
+              >
+                <Text style={styles.smallButtonText}>Add</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => setShowAddMember(true)}>
+              <Text style={styles.link}>+ Add member</Text>
+            </Pressable>
+          )}
+
+          {showInvite ? (
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="+447123456789"
+                placeholderTextColor="#64748b"
+                keyboardType="phone-pad"
+                value={invitePhone}
+                onChangeText={setInvitePhone}
+              />
+              <Pressable
+                style={styles.smallButton}
+                onPress={() =>
+                  runAction(async () => {
+                    await sendWipInvite(wipId, invitePhone.trim());
+                    setInvitePhone('');
+                    setShowInvite(false);
+                  })
+                }
+              >
+                <Text style={styles.smallButtonText}>Send WhatsApp invite</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => setShowInvite(true)}>
+              <Text style={styles.link}>+ Invite by WhatsApp (no account needed yet)</Text>
+            </Pressable>
           )}
         </>
       )}
@@ -409,8 +471,8 @@ export function WipDetailScreen({ wipId, session, onBack }: { wipId: string; ses
         <View key={transaction.id} style={styles.transactionRow}>
           <View style={styles.transactionHeader}>
             <Text style={styles.rowText}>
-              {transaction.type === 'withdrawal' ? '-' : '+'}
-              {formatPence(transaction.amount)} — {transaction.description}
+              {transaction.type === 'withdrawal' ? 'Spent' : 'Deposited'} {formatPence(transaction.amount)} —{' '}
+              {transaction.description}
             </Text>
             {transaction.flagged && <Text style={styles.flaggedBadge}>FLAGGED</Text>}
           </View>
@@ -538,16 +600,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-  balance: {
-    color: Colors.secondary,
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 8,
-  },
   deadline: {
     color: '#64748b',
     fontSize: 13,
     marginTop: 2,
+  },
+  editToggle: {
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  editToggleText: {
+    color: Colors.secondary,
+    fontWeight: '600',
+    fontSize: 13,
   },
   sectionTitle: {
     color: '#fff',
@@ -556,6 +626,11 @@ const styles = StyleSheet.create({
     marginTop: 28,
     marginBottom: 10,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   row: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -563,6 +638,31 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     marginBottom: 8,
+  },
+  memberRow: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    gap: 4,
+  },
+  memberHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  memberHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  nudgeIcon: {
+    paddingHorizontal: 2,
+  },
+  nudgeIconText: {
+    fontSize: 15,
   },
   transactionRow: {
     backgroundColor: Colors.surface,
@@ -587,10 +687,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
+  ruleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
   ruleText: {
     color: '#94a3b8',
     fontSize: 14,
-    marginBottom: 6,
+    flex: 1,
+  },
+  deleteLink: {
+    color: '#f87171',
+    fontSize: 12,
   },
   flaggedBadge: {
     color: '#f87171',
@@ -604,7 +714,7 @@ const styles = StyleSheet.create({
   rsvpButtons: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 8,
+    marginTop: 4,
   },
   rsvpButton: {
     borderWidth: 1,

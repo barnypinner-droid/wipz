@@ -22,7 +22,7 @@ export function CreateWhipScreen({
   onCancel,
 }: {
   session: Session;
-  onDone: () => void;
+  onDone: (wipId: string) => void;
   onCancel: () => void;
 }) {
   const [type, setType] = useState<WipType>('ad_hoc');
@@ -49,21 +49,25 @@ export function CreateWhipScreen({
     setLoading(true);
     setError(null);
 
-    const { error: insertError } = await supabase.from('whips').insert({
-      type,
-      title: title.trim(),
-      purpose: purpose.trim(),
-      target_balance: targetPence,
-      creator_id: session.user.id,
-      deadline: type === 'savings_goal' ? deadline : null,
-    });
+    const { data: newWip, error: insertError } = await supabase
+      .from('whips')
+      .insert({
+        type,
+        title: title.trim(),
+        purpose: purpose.trim(),
+        target_balance: targetPence,
+        creator_id: session.user.id,
+        deadline: type === 'savings_goal' ? deadline : null,
+      })
+      .select()
+      .single();
 
     setLoading(false);
 
-    if (insertError) {
-      setError(insertError.message);
+    if (insertError || !newWip) {
+      setError(insertError?.message ?? 'Failed to create wip.');
     } else {
-      onDone();
+      onDone(newWip.id);
     }
   }
 

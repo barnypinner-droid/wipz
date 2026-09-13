@@ -6,14 +6,20 @@ import { AuthScreen } from './screens/AuthScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { CreateWhipScreen } from './screens/CreateWhipScreen';
 import { WipDetailScreen } from './screens/WipDetailScreen';
+import { BiometricLockScreen } from './screens/BiometricLockScreen';
 import { Colors } from './constants/theme';
 import { registerForPushNotifications } from './lib/pushNotifications';
+import { isBiometricLockAvailable } from './lib/biometrics';
 
-type Screen = { name: 'home' } | { name: 'create' } | { name: 'detail'; wipId: string };
+type Screen =
+  | { name: 'home' }
+  | { name: 'create' }
+  | { name: 'detail'; wipId: string; startInEdit?: boolean };
 
 export default function App() {
   const { session, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const [locked, setLocked] = useState<boolean | null>(null); // null = still checking
 
   useEffect(() => {
     if (session) {
@@ -21,6 +27,14 @@ export default function App() {
         console.log('Push registration failed', err),
       );
     }
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) {
+      setLocked(null);
+      return;
+    }
+    isBiometricLockAvailable().then((available) => setLocked(available));
   }, [session]);
 
   if (loading) {
@@ -41,12 +55,30 @@ export default function App() {
     );
   }
 
+  if (locked === null) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={Colors.primary} />
+        <StatusBar style="light" />
+      </View>
+    );
+  }
+
+  if (locked) {
+    return (
+      <>
+        <BiometricLockScreen onUnlocked={() => setLocked(false)} />
+        <StatusBar style="light" />
+      </>
+    );
+  }
+
   return (
     <>
       {screen.name === 'create' && (
         <CreateWhipScreen
           session={session}
-          onDone={() => setScreen({ name: 'home' })}
+          onDone={(wipId) => setScreen({ name: 'detail', wipId, startInEdit: true })}
           onCancel={() => setScreen({ name: 'home' })}
         />
       )}
@@ -54,6 +86,7 @@ export default function App() {
         <WipDetailScreen
           wipId={screen.wipId}
           session={session}
+          startInEdit={screen.startInEdit}
           onBack={() => setScreen({ name: 'home' })}
         />
       )}

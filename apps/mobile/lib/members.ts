@@ -35,3 +35,8 @@ export async function addMemberByEmail(
   });
   if (insertError) throw insertError;
 }
+
+export async function removeMember(memberRowId: string) {
+  const { error } = await supabase.from('wip_members').delete().eq('id', memberRowId);
+  if (error) throw error;
+}

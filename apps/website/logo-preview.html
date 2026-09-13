@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wipz logo — double-struck gradient</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0b0f19;
+      font-family: -apple-system, sans-serif;
+    }
+    .big {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 400px;
+    }
+    .logo {
+      font-family: 'STIX Two Math', 'Cambria Math', serif;
+      font-size: 160px;
+      line-height: 1;
+      background: linear-gradient(90deg, #6366f1, #06b6d4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .nav {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav .logo {
+      font-size: 32px;
+    }
+    .nav-cta {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #06b6d4;
+    }
+    .label {
+      color: #64748b;
+      font-size: 13px;
+      padding: 16px 40px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="label">Standalone, large</div>
+  <div class="big"><span class="logo">𝕨𝕚𝕡𝕫</span></div>
+
+  <div class="label">In the actual site nav bar</div>
+  <div class="nav">
+    <span class="logo">𝕨𝕚𝕡𝕫</span>
+    <span class="nav-cta">Join the waitlist</span>
+  </div>
+</body>
+</html>

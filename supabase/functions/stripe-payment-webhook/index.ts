@@ -37,6 +37,22 @@ export default {
       }
     }
 
+    if (event.type === 'payment_intent.payment_failed') {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent
+      const transactionId = paymentIntent.metadata.transaction_id
+
+      if (transactionId) {
+        const { error } = await ctx.supabaseAdmin.rpc('fail_contribution_payment', {
+          p_transaction_id: transactionId,
+        })
+        if (error) {
+          console.error('fail_contribution_payment failed', error)
+        }
+      }
+    }
+
+    // Other event types on this destination (issuing/balance/etc.) are
+    // safely ignored — Stripe just needs a 2xx so it doesn't retry.
     return Response.json({ received: true })
   }),
 }

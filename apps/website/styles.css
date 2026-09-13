@@ -59,8 +59,10 @@ h2 {
 }
 
 .logo {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-family: 'Anton', sans-serif;
+  font-size: 1.8rem;
+  color: var(--primary);
+  letter-spacing: 0.02em;
 }
 
 .nav-cta {

@@ -29,8 +29,21 @@ export function CreateWhipScreen({
   const [purpose, setPurpose] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [rules, setRules] = useState<string[]>([]);
+  const [ruleInput, setRuleInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function addRuleToList() {
+    const text = ruleInput.trim();
+    if (!text) return;
+    setRules((current) => [...current, text]);
+    setRuleInput('');
+  }
+
+  function removeRuleFromList(index: number) {
+    setRules((current) => current.filter((_, i) => i !== index));
+  }
 
   async function handleCreate() {
     const targetPence = Math.round(parseFloat(targetAmount) * 100);
@@ -61,13 +74,25 @@ export function CreateWhipScreen({
       .select()
       .single();
 
-    setLoading(false);
-
     if (insertError || !newWip) {
+      setLoading(false);
       setError(insertError?.message ?? 'Failed to create wip.');
-    } else {
-      onDone(newWip.id);
+      return;
     }
+
+    if (rules.length > 0) {
+      // Non-fatal: the wip already exists, so a rules failure shouldn't
+      // strand the user — they can always add rules from the edit screen.
+      const { error: rulesError } = await supabase
+        .from('wip_rules')
+        .insert(rules.map((rule_text) => ({ whip_id: newWip.id, rule_text })));
+      if (rulesError) {
+        console.log('Failed to save rules', rulesError);
+      }
+    }
+
+    setLoading(false);
+    onDone(newWip.id);
   }
 
   return (
@@ -119,6 +144,29 @@ export function CreateWhipScreen({
       {type === 'savings_goal' && (
         <DatePickerField value={deadline} onChange={setDeadline} placeholder="Deadline" minimumDate={new Date()} />
       )}
+
+      <Text style={styles.sectionTitle}>Rules (optional)</Text>
+      {rules.map((rule, index) => (
+        <View key={index} style={styles.ruleRow}>
+          <Text style={styles.ruleText}>• {rule}</Text>
+          <Pressable onPress={() => removeRuleFromList(index)}>
+            <Text style={styles.removeLink}>Remove</Text>
+          </Pressable>
+        </View>
+      ))}
+      <View style={styles.ruleInputRow}>
+        <TextInput
+          style={[styles.input, styles.ruleInput]}
+          placeholder="e.g. Only pitch hire comes out of this pot"
+          placeholderTextColor="#64748b"
+          value={ruleInput}
+          onChangeText={setRuleInput}
+          onSubmitEditing={addRuleToList}
+        />
+        <Pressable style={styles.addRuleButton} onPress={addRuleToList}>
+          <Text style={styles.addRuleButtonText}>Add</Text>
+        </Pressable>
+      </View>
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -187,6 +235,46 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: '#fff',
     marginBottom: 12,
+  },
+  sectionTitle: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  ruleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ruleText: {
+    color: '#94a3b8',
+    fontSize: 14,
+    flex: 1,
+  },
+  removeLink: {
+    color: '#f87171',
+    fontSize: 12,
+  },
+  ruleInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  ruleInput: {
+    flex: 1,
+  },
+  addRuleButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  addRuleButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   button: {
     backgroundColor: Colors.primary,

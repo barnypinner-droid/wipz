@@ -107,7 +107,7 @@ export function HomeScreen({
       ) : (
         <Pressable style={styles.phoneRow} onPress={() => setEditingPhone(true)}>
           <Text style={styles.phoneLink}>
-            {whatsappPhone ? `WhatsApp: ${whatsappPhone}` : '+ Add your WhatsApp number for nudges'}
+            {whatsappPhone ? `Phone: ${whatsappPhone}` : '+ Add your phone number so people can add/invite you'}
           </Text>
         </Pressable>
       )}

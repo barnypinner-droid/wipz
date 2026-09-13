@@ -1,3 +1,4 @@
+import { Linking, Platform } from 'react-native';
 import { supabase } from './supabase';
 import type { Tables } from './database.types';
 
@@ -20,12 +21,27 @@ export async function listWipInvites(whipId: string): Promise<WipInvite[]> {
   return data ?? [];
 }
 
-export async function sendWipInvite(whipId: string, phone: string) {
-  const { data, error } = await supabase.functions.invoke('send-wip-invite', {
-    body: { whip_id: whipId, phone },
-  });
+function buildSmsUrl(phone: string, message: string) {
+  const encodedMessage = encodeURIComponent(message);
+  // iOS wants "&body=", Android wants "?body=" — same sms: scheme, different separator.
+  const separator = Platform.OS === 'ios' ? '&' : '?';
+  return `sms:${phone}${separator}body=${encodedMessage}`;
+}
+
+// Records the invite (so "pending invites" and re-invites still work), then
+// hands off to the device's own Messages app with the recipient and message
+// pre-filled — free, no WhatsApp Business account or per-message cost.
+export async function sendWipInvite(whipId: string, phone: string, whipTitle: string) {
+  const { error } = await supabase
+    .from('wip_invites')
+    .upsert({ whip_id: whipId, phone, status: 'pending' }, { onConflict: 'whip_id,phone' });
   if (error) throw error;
-  return data;
+
+  const message =
+    `You've been invited to join "${whipTitle}" on Wipz. Download the app, set this as your ` +
+    `phone number in your profile, and confirm your spot.`;
+
+  await Linking.openURL(buildSmsUrl(phone, message));
 }
 
 export async function listMyPendingInvites(): Promise<PendingInvite[]> {

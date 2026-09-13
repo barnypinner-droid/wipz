@@ -13,8 +13,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES, type WipType } from '../constants/wipTypes';
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+import { DatePickerField } from '../components/DatePickerField';
 
 export function CreateWhipScreen({
   session,
@@ -41,8 +40,8 @@ export function CreateWhipScreen({
       return;
     }
 
-    if (type === 'savings_goal' && !DATE_PATTERN.test(deadline)) {
-      setError('Savings goals need a deadline in YYYY-MM-DD format.');
+    if (type === 'savings_goal' && !deadline) {
+      setError('Savings goals need a deadline.');
       return;
     }
 
@@ -118,13 +117,7 @@ export function CreateWhipScreen({
         onChangeText={setTargetAmount}
       />
       {type === 'savings_goal' && (
-        <TextInput
-          style={styles.input}
-          placeholder="Deadline (YYYY-MM-DD)"
-          placeholderTextColor="#64748b"
-          value={deadline}
-          onChangeText={setDeadline}
-        />
+        <DatePickerField value={deadline} onChange={setDeadline} placeholder="Deadline" minimumDate={new Date()} />
       )}
 
       {error && <Text style={styles.error}>{error}</Text>}

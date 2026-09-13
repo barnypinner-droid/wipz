@@ -40,3 +40,18 @@ export async function removeMember(memberRowId: string) {
   const { error } = await supabase.from('wip_members').delete().eq('id', memberRowId);
   if (error) throw error;
 }
+
+export async function findUserByPhone(phone: string): Promise<{ id: string; full_name: string } | null> {
+  const { data, error } = await supabase.rpc('find_user_by_phone', { p_phone: phone });
+  if (error) throw error;
+  return data && data.length > 0 ? data[0] : null;
+}
+
+export async function addMemberByUserId(
+  whipId: string,
+  userId: string,
+  role: 'member' | 'treasurer' = 'member',
+) {
+  const { error } = await supabase.from('wip_members').insert({ whip_id: whipId, user_id: userId, role });
+  if (error) throw error;
+}

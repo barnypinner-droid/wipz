@@ -36,7 +36,14 @@
           "faceIDPermission": "Allow Wipz to use Face ID to unlock the app."
         }
       ],
-      "expo-font"
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Wipz to access your contacts so you can add or invite people to a wip."
+        }
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

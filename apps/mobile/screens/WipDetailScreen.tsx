@@ -14,7 +14,16 @@ import type { Tables } from '../lib/database.types';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES } from '../constants/wipTypes';
 import { ProgressRing } from '../components/ProgressRing';
-import { listMembers, addMemberByEmail, removeMember, type WipMember } from '../lib/members';
+import { DatePickerField } from '../components/DatePickerField';
+import {
+  listMembers,
+  addMemberByEmail,
+  addMemberByUserId,
+  findUserByPhone,
+  removeMember,
+  type WipMember,
+} from '../lib/members';
+import { pickContactPhone } from '../lib/contacts';
 import { listRules, addRule, deleteRule, type WipRule } from '../lib/rules';
 import {
   listOccurrences,
@@ -234,13 +243,7 @@ export function WipDetailScreen({
       </View>
       {isStaff && wip.type === 'recurring' && showAddOccurrence && (
         <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#64748b"
-            value={occurrenceDate}
-            onChangeText={setOccurrenceDate}
-          />
+          <DatePickerField value={occurrenceDate} onChange={setOccurrenceDate} placeholder="Match date" />
           <Pressable
             style={styles.smallButton}
             onPress={() =>
@@ -340,6 +343,24 @@ export function WipDetailScreen({
             </View>
           ))}
 
+          <Pressable
+            onPress={() =>
+              runAction(async () => {
+                const picked = await pickContactPhone();
+                if (!picked) return;
+
+                const existingUser = await findUserByPhone(picked.phone);
+                if (existingUser) {
+                  await addMemberByUserId(wipId, existingUser.id);
+                } else {
+                  await sendWipInvite(wipId, picked.phone, wip.title);
+                }
+              })
+            }
+          >
+            <Text style={styles.link}>+ Add from contacts</Text>
+          </Pressable>
+
           {showAddMember ? (
             <View style={styles.form}>
               <TextInput
@@ -365,7 +386,7 @@ export function WipDetailScreen({
             </View>
           ) : (
             <Pressable onPress={() => setShowAddMember(true)}>
-              <Text style={styles.link}>+ Add member</Text>
+              <Text style={styles.link}>+ Add member by email</Text>
             </Pressable>
           )}
 
@@ -383,18 +404,18 @@ export function WipDetailScreen({
                 style={styles.smallButton}
                 onPress={() =>
                   runAction(async () => {
-                    await sendWipInvite(wipId, invitePhone.trim());
+                    await sendWipInvite(wipId, invitePhone.trim(), wip.title);
                     setInvitePhone('');
                     setShowInvite(false);
                   })
                 }
               >
-                <Text style={styles.smallButtonText}>Send WhatsApp invite</Text>
+                <Text style={styles.smallButtonText}>Send invite text</Text>
               </Pressable>
             </View>
           ) : (
             <Pressable onPress={() => setShowInvite(true)}>
-              <Text style={styles.link}>+ Invite by WhatsApp (no account needed yet)</Text>
+              <Text style={styles.link}>+ Invite by phone number (no account needed yet)</Text>
             </Pressable>
           )}
         </>

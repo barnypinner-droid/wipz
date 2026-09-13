@@ -530,6 +530,13 @@ export type Database = {
           id: string
         }[]
       }
+      find_user_by_phone: {
+        Args: { p_phone: string }
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
       flag_transaction: {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: boolean

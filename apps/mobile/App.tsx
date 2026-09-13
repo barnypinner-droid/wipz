@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useFonts, Anton_400Regular } from '@expo-google-fonts/anton';
 import { useAuth } from './hooks/useAuth';
 import { AuthScreen } from './screens/AuthScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -20,6 +21,7 @@ export default function App() {
   const { session, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
   const [locked, setLocked] = useState<boolean | null>(null); // null = still checking
+  const [fontsLoaded] = useFonts({ Anton_400Regular });
 
   useEffect(() => {
     if (session) {
@@ -37,7 +39,7 @@ export default function App() {
     isBiometricLockAvailable().then((available) => setLocked(available));
   }, [session]);
 
-  if (loading) {
+  if (loading || !fontsLoaded) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={Colors.primary} />

@@ -35,7 +35,8 @@
         {
           "faceIDPermission": "Allow Wipz to use Face ID to unlock the app."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

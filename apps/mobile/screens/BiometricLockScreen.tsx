@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
+    fontFamily: 'Anton_400Regular',
     fontSize: 40,
-    fontWeight: '800',
     color: Colors.primary,
     marginBottom: 8,
   },

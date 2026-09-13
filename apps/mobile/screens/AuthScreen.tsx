@@ -59,7 +59,7 @@ export function AuthScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>Wipz</Text>
+      <Text style={styles.title}>wipz</Text>
       <Text style={styles.subtitle}>Group spending, without the drama.</Text>
 
       {mode === 'signUp' && (
@@ -118,9 +118,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: '700',
+    fontFamily: 'Anton_400Regular',
+    color: Colors.primary,
+    fontSize: 44,
     textAlign: 'center',
   },
   subtitle: {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from './hooks/useAuth';
@@ -7,12 +7,21 @@ import { HomeScreen } from './screens/HomeScreen';
 import { CreateWhipScreen } from './screens/CreateWhipScreen';
 import { WipDetailScreen } from './screens/WipDetailScreen';
 import { Colors } from './constants/theme';
+import { registerForPushNotifications } from './lib/pushNotifications';
 
 type Screen = { name: 'home' } | { name: 'create' } | { name: 'detail'; wipId: string };
 
 export default function App() {
   const { session, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
+
+  useEffect(() => {
+    if (session) {
+      registerForPushNotifications(session.user.id).catch((err) =>
+        console.log('Push registration failed', err),
+      );
+    }
+  }, [session]);
 
   if (loading) {
     return (

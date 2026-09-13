@@ -96,6 +96,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          expo_push_token: string | null
           full_name: string
           id: string
           stripe_cardholder_id: string | null
@@ -104,6 +105,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          expo_push_token?: string | null
           full_name: string
           id: string
           stripe_cardholder_id?: string | null
@@ -112,6 +114,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          expo_push_token?: string | null
           full_name?: string
           id?: string
           stripe_cardholder_id?: string | null

@@ -1,36 +1,34 @@
 import { withSupabase } from 'npm:@supabase/server'
 
-const WHATSAPP_API_VERSION = 'v20.0'
+const EXPO_PUSH_API = 'https://exp.host/--/api/v2/push/send'
 
-async function sendWhatsAppText(phone: string, message: string) {
-  const token = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
-  const phoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
-
-  if (!token || !phoneNumberId) {
-    return { sent: false, reason: 'not_configured' as const }
-  }
-
-  const res = await fetch(
-    `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${phoneNumberId}/messages`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: phone,
-        type: 'text',
-        text: { body: message },
-      }),
+async function sendExpoPush(expoPushToken: string, title: string, body: string) {
+  const res = await fetch(EXPO_PUSH_API, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
     },
-  )
+    body: JSON.stringify([
+      {
+        to: expoPushToken,
+        sound: 'default',
+        title,
+        body,
+      },
+    ]),
+  })
 
   if (!res.ok) {
-    const body = await res.text()
-    console.error('WhatsApp send failed', res.status, body)
+    console.error('Expo push send failed', res.status, await res.text())
     return { sent: false, reason: 'api_error' as const }
+  }
+
+  const json = await res.json()
+  const ticket = json?.data?.[0]
+  if (ticket?.status === 'error') {
+    console.error('Expo push ticket error', ticket)
+    return { sent: false, reason: ticket.details?.error ?? 'ticket_error' }
   }
 
   return { sent: true as const }
@@ -63,12 +61,15 @@ export default {
       return Response.json({ error: insertError.message }, { status: 500 })
     }
 
+    const { data: wip } = await ctx.supabase.from('whips').select('title').eq('id', whip_id).single()
+    const title = wip?.title ? `Wipz — ${wip.title}` : 'Wipz'
+
     // Recipients: the one target, or every other member for a group-wide nudge.
-    // Uses the admin client since a member can't otherwise read others' phone numbers.
+    // Uses the admin client since a member can't otherwise read others' push tokens.
     let recipientQuery = ctx.supabaseAdmin
       .from('users')
-      .select('id, whatsapp_phone')
-      .not('whatsapp_phone', 'is', null)
+      .select('id, expo_push_token')
+      .not('expo_push_token', 'is', null)
 
     if (target_user_id) {
       recipientQuery = recipientQuery.eq('id', target_user_id)
@@ -84,11 +85,11 @@ export default {
     const { data: recipients } = await recipientQuery
     const results = await Promise.all(
       (recipients ?? []).map(async (recipient) => {
-        const outcome = await sendWhatsAppText(recipient.whatsapp_phone!, message)
+        const outcome = await sendExpoPush(recipient.expo_push_token!, title, message)
         return { user_id: recipient.id, ...outcome }
       }),
     )
 
-    return Response.json({ nudge, whatsapp: results })
+    return Response.json({ nudge, push: results })
   }),
 }

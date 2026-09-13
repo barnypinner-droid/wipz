@@ -9,7 +9,10 @@ import {
   View,
 } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
+import { usePaymentSheet } from '@stripe/stripe-react-native';
 import { supabase } from '../lib/supabase';
+import { createPaymentIntent } from '../lib/payments';
+import { createWipCard } from '../lib/card';
 import type { Tables } from '../lib/database.types';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES } from '../constants/wipTypes';
@@ -33,12 +36,7 @@ import {
   type WipOccurrence,
   type WipRsvp,
 } from '../lib/occurrences';
-import {
-  listTransactions,
-  flagTransaction,
-  payPendingContribution,
-  type Transaction,
-} from '../lib/transactions';
+import { listTransactions, flagTransaction, type Transaction } from '../lib/transactions';
 import {
   listWithdrawalRequests,
   requestWithdrawal,
@@ -102,6 +100,16 @@ export function WipDetailScreen({
   const [showNudge, setShowNudge] = useState(false);
   const [flaggingId, setFlaggingId] = useState<string | null>(null);
   const [flagReason, setFlagReason] = useState('');
+  const [contributeAmount, setContributeAmount] = useState('');
+  const [showContribute, setShowContribute] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [billingLine1, setBillingLine1] = useState('');
+  const [billingCity, setBillingCity] = useState('');
+  const [billingPostalCode, setBillingPostalCode] = useState('');
+  const [provisioningCard, setProvisioningCard] = useState(false);
+
+  const { initPaymentSheet, presentPaymentSheet } = usePaymentSheet();
 
   const load = useCallback(async () => {
     setError(null);
@@ -138,6 +146,44 @@ export function WipDetailScreen({
   useEffect(() => {
     load();
   }, [load]);
+
+  const payWithSheet = useCallback(
+    async (args: { transactionId: string } | { amount: number }) => {
+      setPaying(true);
+      setError(null);
+      try {
+        const { clientSecret } = await createPaymentIntent(
+          'transactionId' in args
+            ? { transactionId: args.transactionId }
+            : { whipId: wipId, amount: args.amount },
+        );
+
+        const { error: initError } = await initPaymentSheet({
+          paymentIntentClientSecret: clientSecret,
+          merchantDisplayName: 'Wipz',
+          applePay: { merchantCountryCode: 'GB' },
+          googlePay: { merchantCountryCode: 'GB', currencyCode: 'GBP', testEnv: true },
+          allowsDelayedPaymentMethods: true,
+          returnURL: 'wipz://stripe-redirect',
+        });
+        if (initError) throw new Error(initError.message);
+
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) {
+          if (presentError.code === 'Canceled') return;
+          throw new Error(presentError.message);
+        }
+
+        setError(null);
+        await load();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Payment failed.');
+      } finally {
+        setPaying(false);
+      }
+    },
+    [wipId, initPaymentSheet, presentPaymentSheet, load],
+  );
 
   const myMembership = members.find((m) => m.user_id === session.user.id);
   const isStaff = myMembership?.role === 'organiser' || myMembership?.role === 'treasurer';
@@ -178,6 +224,42 @@ export function WipDetailScreen({
       {wip.deadline && <Text style={styles.deadline}>By {wip.deadline}</Text>}
 
       <ProgressRing current={wip.current_balance} target={wip.target_balance} />
+
+      {showContribute ? (
+        <View style={styles.form}>
+          <TextInput
+            style={styles.input}
+            placeholder="Amount (£)"
+            placeholderTextColor="#64748b"
+            keyboardType="decimal-pad"
+            value={contributeAmount}
+            onChangeText={setContributeAmount}
+          />
+          <Pressable
+            style={styles.button}
+            disabled={paying}
+            onPress={() => {
+              const pence = Math.round(parseFloat(contributeAmount) * 100);
+              if (!Number.isFinite(pence) || pence <= 0) {
+                setError('Enter an amount above £0.');
+                return;
+              }
+              setContributeAmount('');
+              setShowContribute(false);
+              payWithSheet({ amount: pence });
+            }}
+          >
+            {paying ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Pay in</Text>}
+          </Pressable>
+          <Pressable onPress={() => setShowContribute(false)} disabled={paying}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable style={styles.button} onPress={() => setShowContribute(true)}>
+          <Text style={styles.buttonText}>Pay into this wip</Text>
+        </Pressable>
+      )}
 
       {isStaff && (
         <Pressable style={styles.editToggle} onPress={() => setEditing((e) => !e)}>
@@ -323,9 +405,14 @@ export function WipDetailScreen({
                 {pendingContribution && isMe && (
                   <Pressable
                     style={styles.smallButton}
-                    onPress={() => runAction(() => payPendingContribution(pendingContribution.id))}
+                    disabled={paying}
+                    onPress={() => payWithSheet({ transactionId: pendingContribution.id })}
                   >
-                    <Text style={styles.smallButtonText}>Pay {formatPence(pendingContribution.amount)}</Text>
+                    {paying ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.smallButtonText}>Pay {formatPence(pendingContribution.amount)}</Text>
+                    )}
                   </Pressable>
                 )}
               </>
@@ -419,6 +506,83 @@ export function WipDetailScreen({
             </Pressable>
           )}
         </>
+      )}
+
+      {/* Virtual card */}
+      <Text style={styles.sectionTitle}>Card</Text>
+      {wip.stripe_card_id ? (
+        <View style={styles.row}>
+          <Text style={styles.rowText}>Virtual card •••• {wip.stripe_card_last4}</Text>
+          <Text style={styles.rowMeta}>
+            Expires {wip.stripe_card_exp_month}/{wip.stripe_card_exp_year}
+          </Text>
+        </View>
+      ) : isStaff ? (
+        <>
+          <Text style={styles.emptyText}>
+            No card yet. Note: this requires Stripe Issuing to be enabled on the account — if it isn't yet, this
+            will show an error explaining how to enable it.
+          </Text>
+          {showCardForm ? (
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Billing address line 1"
+                placeholderTextColor="#64748b"
+                value={billingLine1}
+                onChangeText={setBillingLine1}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="City"
+                placeholderTextColor="#64748b"
+                value={billingCity}
+                onChangeText={setBillingCity}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Postal code"
+                placeholderTextColor="#64748b"
+                value={billingPostalCode}
+                onChangeText={setBillingPostalCode}
+              />
+              <Text style={styles.emptyText}>
+                Only needed the first time you provision a card — it registers you as the cardholder with Stripe.
+              </Text>
+              <Pressable
+                style={styles.smallButton}
+                disabled={provisioningCard}
+                onPress={() =>
+                  runAction(async () => {
+                    setProvisioningCard(true);
+                    try {
+                      await createWipCard(wipId, {
+                        line1: billingLine1.trim(),
+                        city: billingCity.trim(),
+                        postal_code: billingPostalCode.trim(),
+                      });
+                      setShowCardForm(false);
+                    } finally {
+                      setProvisioningCard(false);
+                    }
+                  })
+                }
+              >
+                {provisioningCard ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.smallButtonText}>Get virtual card</Text>
+                )}
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => setShowCardForm(true)}>
+              <Text style={styles.link}>+ Get a virtual card for this wip</Text>
+            </Pressable>
+          )}
+        </>
+      ) : (
+        <Text style={styles.emptyText}>No card yet.</Text>
       )}
 
       {/* Withdrawals */}
@@ -781,6 +945,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 13,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  cancelText: {
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 12,
   },
   link: {
     color: Colors.secondary,

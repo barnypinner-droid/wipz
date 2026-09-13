@@ -25,6 +25,7 @@ export type Database = {
           occurrence_id: string | null
           status: string
           stripe_authorization_id: string | null
+          stripe_payment_intent_id: string | null
           type: string
           user_id: string | null
           whip_id: string | null
@@ -41,6 +42,7 @@ export type Database = {
           occurrence_id?: string | null
           status: string
           stripe_authorization_id?: string | null
+          stripe_payment_intent_id?: string | null
           type: string
           user_id?: string | null
           whip_id?: string | null
@@ -57,6 +59,7 @@ export type Database = {
           occurrence_id?: string | null
           status?: string
           stripe_authorization_id?: string | null
+          stripe_payment_intent_id?: string | null
           type?: string
           user_id?: string | null
           whip_id?: string | null
@@ -133,7 +136,10 @@ export type Database = {
           id: string
           purpose: string
           status: string
+          stripe_card_exp_month: number | null
+          stripe_card_exp_year: number | null
           stripe_card_id: string | null
+          stripe_card_last4: string | null
           target_balance: number
           title: string
           type: string
@@ -148,7 +154,10 @@ export type Database = {
           id?: string
           purpose: string
           status?: string
+          stripe_card_exp_month?: number | null
+          stripe_card_exp_year?: number | null
           stripe_card_id?: string | null
+          stripe_card_last4?: string | null
           target_balance: number
           title: string
           type?: string
@@ -163,7 +172,10 @@ export type Database = {
           id?: string
           purpose?: string
           status?: string
+          stripe_card_exp_month?: number | null
+          stripe_card_exp_year?: number | null
           stripe_card_id?: string | null
+          stripe_card_last4?: string | null
           target_balance?: number
           title?: string
           type?: string
@@ -517,6 +529,10 @@ export type Database = {
       }
       approve_withdrawal_request: {
         Args: { p_request_id: string }
+        Returns: boolean
+      }
+      confirm_contribution_payment: {
+        Args: { p_transaction_id: string }
         Returns: boolean
       }
       execute_withdrawal_request: {

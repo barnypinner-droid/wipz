@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StripeProvider } from '@stripe/stripe-react-native';
 import { useFonts, Anton_400Regular } from '@expo-google-fonts/anton';
 import { useAuth } from './hooks/useAuth';
 import { AuthScreen } from './screens/AuthScreen';
@@ -17,7 +18,7 @@ type Screen =
   | { name: 'create' }
   | { name: 'detail'; wipId: string; startInEdit?: boolean };
 
-export default function App() {
+function AppContent() {
   const { session, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>({ name: 'home' });
   const [locked, setLocked] = useState<boolean | null>(null); // null = still checking
@@ -101,6 +102,18 @@ export default function App() {
       )}
       <StatusBar style="light" />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <StripeProvider
+      publishableKey={process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
+      urlScheme="wipz"
+      merchantIdentifier="merchant.com.wipzapp.wipz"
+    >
+      <AppContent />
+    </StripeProvider>
   );
 }
 

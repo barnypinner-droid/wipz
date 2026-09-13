@@ -3,6 +3,7 @@
     "name": "Wipz",
     "slug": "wipz",
     "version": "1.0.0",
+    "scheme": "wipz",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -43,7 +44,8 @@
         }
       ],
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@stripe/stripe-react-native"
     ]
   }
 }

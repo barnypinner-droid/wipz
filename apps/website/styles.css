@@ -326,26 +326,6 @@ section {
   scroll-margin-top: 72px;
 }
 
-.problem {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.problem-photo {
-  margin: 32px 0 8px;
-  border-radius: 20px;
-  overflow: hidden;
-  aspect-ratio: 21 / 7;
-  border: 1px solid var(--border);
-}
-
-.problem-photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .section-lead {
   color: var(--text-muted);
   text-align: center;
@@ -359,49 +339,8 @@ section {
   margin-top: 40px;
 }
 
-.grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
 .grid-4 {
   grid-template-columns: repeat(4, 1fr);
-}
-
-.card {
-  background: var(--canvas);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 28px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-}
-
-.card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  transform: translateY(-2px);
-}
-
-.problem .card {
-  background: var(--canvas);
-}
-
-.card-accent {
-  background: var(--surface);
-}
-
-.card-icon {
-  display: inline-block;
-  font-size: 1.6rem;
-  margin-bottom: 14px;
-}
-
-.card h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.card p {
-  color: var(--text-muted);
-  margin: 0;
 }
 
 .tag {
@@ -736,7 +675,6 @@ section {
 }
 
 @media (max-width: 800px) {
-  .grid-3,
   .grid-4,
   .type-grid,
   .pay-grid {
@@ -758,10 +696,6 @@ section {
 
   .hero-card-text {
     align-items: center;
-  }
-
-  .problem-photo {
-    aspect-ratio: 16 / 9;
   }
 }
 

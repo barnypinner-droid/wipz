@@ -45,6 +45,13 @@ import {
 } from '../lib/withdrawals';
 import { sendNudge } from '../lib/nudges';
 import { listWipInvites, sendWipInvite, type WipInvite } from '../lib/invites';
+import {
+  createSetupIntent,
+  createContributionPlan,
+  listContributionPlans,
+  cancelContributionPlan,
+  type ContributionPlanProgress,
+} from '../lib/contributionPlans';
 
 type Whip = Tables<'whips'>;
 
@@ -108,13 +115,18 @@ export function WipDetailScreen({
   const [billingCity, setBillingCity] = useState('');
   const [billingPostalCode, setBillingPostalCode] = useState('');
   const [provisioningCard, setProvisioningCard] = useState(false);
+  const [contributionPlans, setContributionPlans] = useState<ContributionPlanProgress[]>([]);
+  const [showInstalmentForm, setShowInstalmentForm] = useState(false);
+  const [instalmentAmount, setInstalmentAmount] = useState('');
+  const [instalmentMonths, setInstalmentMonths] = useState('');
+  const [settingUpPlan, setSettingUpPlan] = useState(false);
 
   const { initPaymentSheet, presentPaymentSheet } = usePaymentSheet();
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [wipResult, memberList, ruleList, occurrenceList, transactionList, requestList, inviteList] =
+      const [wipResult, memberList, ruleList, occurrenceList, transactionList, requestList, inviteList, planList] =
         await Promise.all([
           supabase.from('whips').select('*').eq('id', wipId).single(),
           listMembers(wipId),
@@ -123,6 +135,7 @@ export function WipDetailScreen({
           listTransactions(wipId),
           listWithdrawalRequests(wipId),
           listWipInvites(wipId),
+          listContributionPlans(wipId),
         ]);
       if (wipResult.error) throw wipResult.error;
       setWip(wipResult.data);
@@ -132,6 +145,7 @@ export function WipDetailScreen({
       setTransactions(transactionList);
       setWithdrawalRequests(requestList);
       setInvites(inviteList);
+      setContributionPlans(planList);
 
       // occurrenceList is sorted newest-first, so [0] is the current/latest week.
       const latest = occurrenceList[0];
@@ -180,6 +194,46 @@ export function WipDetailScreen({
         setError(err instanceof Error ? err.message : 'Payment failed.');
       } finally {
         setPaying(false);
+      }
+    },
+    [wipId, initPaymentSheet, presentPaymentSheet, load],
+  );
+
+  // Sets up a "£X a month for N months" instalment plan: saves a payment
+  // method via a SetupIntent (not a payment — nothing is charged yet), then
+  // records the plan. charge-due-plans (a daily cron job) takes it from
+  // there, charging the saved card/Bacs mandate each month automatically.
+  const setupInstalmentPlan = useCallback(
+    async (amount: number, totalInstallments: number) => {
+      setSettingUpPlan(true);
+      setError(null);
+      try {
+        const { customerId, ephemeralKeySecret, setupIntentClientSecret, setupIntentId } = await createSetupIntent();
+
+        const { error: initError } = await initPaymentSheet({
+          setupIntentClientSecret,
+          customerId,
+          customerEphemeralKeySecret: ephemeralKeySecret,
+          merchantDisplayName: 'Wipz',
+          allowsDelayedPaymentMethods: true,
+          returnURL: 'wipz://stripe-redirect',
+        });
+        if (initError) throw new Error(initError.message);
+
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) {
+          if (presentError.code === 'Canceled') return;
+          throw new Error(presentError.message);
+        }
+
+        await createContributionPlan({ whipId: wipId, amount, totalInstallments, setupIntentId });
+
+        setError(null);
+        await load();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not set up the instalment plan.');
+      } finally {
+        setSettingUpPlan(false);
       }
     },
     [wipId, initPaymentSheet, presentPaymentSheet, load],
@@ -259,6 +313,89 @@ export function WipDetailScreen({
         <Pressable style={styles.button} onPress={() => setShowContribute(true)}>
           <Text style={styles.buttonText}>Pay into this wip</Text>
         </Pressable>
+      )}
+
+      {/* Instalment plans — savings-goal wips only */}
+      {wip.type === 'savings_goal' && (
+        <View>
+          <Text style={styles.sectionTitle}>Instalment plans</Text>
+          {contributionPlans.length === 0 && (
+            <Text style={styles.emptyText}>No instalment plans set up yet.</Text>
+          )}
+          {contributionPlans.map((plan) => (
+            <View key={plan.id} style={styles.row}>
+              <Text style={styles.rowText}>
+                {plan.user_id === session.user.id ? 'You' : plan.full_name ?? 'Member'}: £
+                {(plan.amount / 100).toFixed(2)}/month × {plan.total_installments}
+              </Text>
+              <Text style={styles.rowMeta}>
+                {plan.status === 'active' && `${plan.installments_paid} of ${plan.total_installments} paid`}
+                {plan.status === 'completed' && 'completed'}
+                {plan.status === 'failed' && 'payment failed — needs attention'}
+                {plan.status === 'cancelled' && 'cancelled'}
+              </Text>
+              {plan.user_id === session.user.id && plan.status === 'active' && (
+                <Pressable onPress={() => runAction(() => cancelContributionPlan(plan.id))}>
+                  <Text style={styles.deleteLink}>Cancel</Text>
+                </Pressable>
+              )}
+            </View>
+          ))}
+
+          {showInstalmentForm ? (
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Amount per month (£)"
+                placeholderTextColor="#64748b"
+                keyboardType="decimal-pad"
+                value={instalmentAmount}
+                onChangeText={setInstalmentAmount}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Number of months (e.g. 6)"
+                placeholderTextColor="#64748b"
+                keyboardType="number-pad"
+                value={instalmentMonths}
+                onChangeText={setInstalmentMonths}
+              />
+              <Pressable
+                style={styles.button}
+                disabled={settingUpPlan}
+                onPress={() => {
+                  const pence = Math.round(parseFloat(instalmentAmount) * 100);
+                  const months = parseInt(instalmentMonths, 10);
+                  if (!Number.isFinite(pence) || pence <= 0) {
+                    setError('Enter a monthly amount above £0.');
+                    return;
+                  }
+                  if (!Number.isInteger(months) || months <= 0) {
+                    setError('Enter a whole number of months.');
+                    return;
+                  }
+                  setInstalmentAmount('');
+                  setInstalmentMonths('');
+                  setShowInstalmentForm(false);
+                  setupInstalmentPlan(pence, months);
+                }}
+              >
+                {settingUpPlan ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Save payment method &amp; start plan</Text>
+                )}
+              </Pressable>
+              <Pressable onPress={() => setShowInstalmentForm(false)} disabled={settingUpPlan}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable style={styles.button} onPress={() => setShowInstalmentForm(true)}>
+              <Text style={styles.buttonText}>Set up a monthly instalment plan</Text>
+            </Pressable>
+          )}
+        </View>
       )}
 
       {isStaff && (

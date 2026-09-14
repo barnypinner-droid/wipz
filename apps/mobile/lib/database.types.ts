@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -23,6 +25,7 @@ export type Database = {
           flagged_reason: string | null
           id: string
           occurrence_id: string | null
+          plan_id: string | null
           status: string
           stripe_authorization_id: string | null
           stripe_payment_intent_id: string | null
@@ -40,6 +43,7 @@ export type Database = {
           flagged_reason?: string | null
           id?: string
           occurrence_id?: string | null
+          plan_id?: string | null
           status: string
           stripe_authorization_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -57,6 +61,7 @@ export type Database = {
           flagged_reason?: string | null
           id?: string
           occurrence_id?: string | null
+          plan_id?: string | null
           status?: string
           stripe_authorization_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -77,6 +82,13 @@ export type Database = {
             columns: ["occurrence_id"]
             isOneToOne: false
             referencedRelation: "wip_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "wip_contribution_plans"
             referencedColumns: ["id"]
           },
           {
@@ -103,6 +115,7 @@ export type Database = {
           full_name: string
           id: string
           stripe_cardholder_id: string | null
+          stripe_customer_id: string | null
           whatsapp_phone: string | null
         }
         Insert: {
@@ -112,6 +125,7 @@ export type Database = {
           full_name: string
           id: string
           stripe_cardholder_id?: string | null
+          stripe_customer_id?: string | null
           whatsapp_phone?: string | null
         }
         Update: {
@@ -121,7 +135,26 @@ export type Database = {
           full_name?: string
           id?: string
           stripe_cardholder_id?: string | null
+          stripe_customer_id?: string | null
           whatsapp_phone?: string | null
+        }
+        Relationships: []
+      }
+      waitlist_signups: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
         }
         Relationships: []
       }
@@ -186,6 +219,63 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wip_contribution_plans: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          installments_paid: number
+          next_charge_date: string
+          status: string
+          stripe_payment_method_id: string
+          stripe_payment_method_type: string
+          total_installments: number
+          user_id: string
+          whip_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          installments_paid?: number
+          next_charge_date: string
+          status?: string
+          stripe_payment_method_id: string
+          stripe_payment_method_type: string
+          total_installments: number
+          user_id: string
+          whip_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          installments_paid?: number
+          next_charge_date?: string
+          status?: string
+          stripe_payment_method_id?: string
+          stripe_payment_method_type?: string
+          total_installments?: number
+          user_id?: string
+          whip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wip_contribution_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wip_contribution_plans_whip_id_fkey"
+            columns: ["whip_id"]
+            isOneToOne: false
+            referencedRelation: "whips"
             referencedColumns: ["id"]
           },
         ]
@@ -517,16 +607,6 @@ export type Database = {
     }
     Functions: {
       accept_wip_invite: { Args: { p_invite_id: string }; Returns: boolean }
-      list_my_pending_invites: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          created_at: string
-          id: string
-          phone: string
-          whip_id: string
-          whip_title: string
-        }[]
-      }
       approve_withdrawal_request: {
         Args: { p_request_id: string }
         Returns: boolean
@@ -538,6 +618,10 @@ export type Database = {
       execute_withdrawal_request: {
         Args: { p_request_id: string }
         Returns: undefined
+      }
+      fail_contribution_payment: {
+        Args: { p_transaction_id: string }
+        Returns: boolean
       }
       find_user_by_email: {
         Args: { p_email: string }
@@ -559,6 +643,29 @@ export type Database = {
       }
       is_wip_member: { Args: { p_whip_id: string }; Returns: boolean }
       is_wip_staff: { Args: { p_whip_id: string }; Returns: boolean }
+      list_my_pending_invites: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          phone: string
+          whip_id: string
+          whip_title: string
+        }[]
+      }
+      list_wip_contribution_plans: {
+        Args: { p_whip_id: string }
+        Returns: {
+          amount: number
+          full_name: string
+          id: string
+          installments_paid: number
+          next_charge_date: string
+          status: string
+          total_installments: number
+          user_id: string
+        }[]
+      }
       pay_pending_contribution: {
         Args: { p_transaction_id: string }
         Returns: boolean

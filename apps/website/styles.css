@@ -364,6 +364,14 @@ section {
   color: #a5b4fc;
 }
 
+.type-card-tag-top {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 2;
+  margin-bottom: 0;
+}
+
 .type-card h3 {
   color: #fff;
   font-size: 1.1rem;
@@ -676,6 +684,103 @@ section {
 
 .footer-logo {
   font-size: 1.1rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  transition: color 0.15s ease;
+}
+
+.footer-links a:hover {
+  color: var(--text-muted);
+}
+
+/* Legal / contact / investor pages */
+.legal {
+  padding: 140px 0 100px;
+}
+
+.legal-container {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.legal-container h1 {
+  text-align: left;
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  margin-bottom: 8px;
+}
+
+.legal-container .eyebrow {
+  text-align: left;
+}
+
+.legal-updated {
+  color: var(--text-muted);
+  margin-bottom: 40px;
+}
+
+.legal-container h2 {
+  text-align: left;
+  font-size: 1.2rem;
+  margin-top: 36px;
+}
+
+.legal-container p {
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.legal-container a {
+  color: var(--secondary);
+}
+
+.legal-disclaimer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.legal-container-narrow {
+  max-width: 560px;
+}
+
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin: 28px 0;
+}
+
+.contact-card-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.contact-card-email {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.contact-card-email:hover {
+  color: var(--secondary);
 }
 
 @media (max-width: 800px) {

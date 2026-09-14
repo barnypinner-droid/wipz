@@ -365,25 +365,52 @@ section {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  background: var(--surface);
+  min-height: 600px;
   border: 1px solid var(--border);
-  padding: 28px;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .type-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.type-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  filter: brightness(1.15) saturate(1.1);
+}
+
+.type-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 15, 25, 0.1) 0%, rgba(11, 15, 25, 0.35) 45%, rgba(11, 15, 25, 0.65) 100%);
+  z-index: 1;
 }
 
 .type-card-body {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 24px;
+}
+
+.type-card .tag {
+  color: #a5b4fc;
 }
 
 .type-card h3 {
+  color: #fff;
   font-size: 1.1rem;
   margin-bottom: 18px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 /* Example progress-ring mockup, reused inside each payment-group card */
@@ -396,6 +423,7 @@ section {
   border-radius: 14px;
   padding: 14px 16px;
   margin-bottom: 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
 }
 
 .example-ring {
@@ -447,9 +475,10 @@ section {
 .type-card-features li {
   position: relative;
   padding-left: 22px;
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 255, 255, 0.92);
   font-size: 0.86rem;
   line-height: 1.35;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
 }
 
 .type-card-features li::before {

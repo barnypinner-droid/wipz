@@ -418,6 +418,18 @@ section {
   font-size: 0.92rem;
 }
 
+.type-card-example {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #a5f3fc;
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 8px;
+  padding: 5px 10px;
+  margin: 0 0 14px;
+}
+
 .type-card-features {
   list-style: none;
   margin: 0;

@@ -26,7 +26,7 @@ form.addEventListener('submit', async (event) => {
     });
 
     if (res.ok) {
-      message.textContent = "You're on the list — we'll be in touch.";
+      message.textContent = "You're on the list. We'll be in touch.";
       form.reset();
     } else if (res.status === 409) {
       message.textContent = "You're already on the list!";

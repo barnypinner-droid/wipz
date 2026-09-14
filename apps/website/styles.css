@@ -783,6 +783,43 @@ section {
   color: var(--secondary);
 }
 
+.forecast-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 0.9rem;
+}
+
+.forecast-table th,
+.forecast-table td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.forecast-table th {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.forecast-table td {
+  color: var(--text);
+}
+
+.forecast-table td:first-child {
+  color: var(--secondary);
+  font-weight: 700;
+}
+
+.legal-caption {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  margin-top: -8px;
+}
+
 @media (max-width: 800px) {
   .grid-4,
   .type-grid,

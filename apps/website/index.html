@@ -7,42 +7,92 @@
   <meta name="description" content="Wipz is the shared pot for mates who don't want to chase each other for money. Pre-fund the pot, RSVP-gated subs, full transparency." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="nav">
     <div class="container nav-inner">
       <span class="logo">wipz</span>
+      <nav class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#types">Wip types</a>
+      </nav>
       <a class="nav-cta" href="#waitlist">Join the waitlist</a>
     </div>
   </header>
 
   <main>
     <section class="hero">
-      <div class="container">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <span class="pill">Building in the UK 🇬🇧 — early access opening soon</span>
         <h1>Group spending,<br />without the drama.</h1>
         <p class="subhead">
           The shared pot for mates who don't want to chase each other for money.
           Pre-fund it, spend from it, see everything — no more "you owe me" conversations.
         </p>
-        <a class="button" href="#waitlist">Get early access</a>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#waitlist">Get early access</a>
+          <a class="button button-ghost" href="#how">See how it works</a>
+        </div>
+
+        <div class="hero-card" aria-hidden="true">
+          <svg class="hero-ring" width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.08)" stroke-width="14" fill="none" />
+            <circle cx="60" cy="60" r="52" stroke="url(#ringGradient)" stroke-width="14" fill="none"
+              stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="88"
+              transform="rotate(-90 60 60)" />
+            <defs>
+              <linearGradient id="ringGradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6366f1" />
+                <stop offset="100%" stop-color="#06b6d4" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="hero-card-text">
+            <span class="hero-card-title">Five-a-side subs</span>
+            <span class="hero-card-amount">£184.00 <span class="hero-card-target">/ £264.00</span></span>
+            <span class="hero-card-meta">9 of 12 paid in</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats">
+      <div class="container stats-grid">
+        <div class="stat">
+          <span class="stat-number">£3.3bn</span>
+          <span class="stat-label">UK group-spend opportunity, bottom-up</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">750k</span>
+          <span class="stat-label">regular weekly five-a-side players in the UK</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">3</span>
+          <span class="stat-label">wip types — recurring, ad-hoc, savings goal</span>
+        </div>
       </div>
     </section>
 
     <section class="problem">
       <div class="container">
+        <span class="eyebrow">The problem</span>
         <h2>The organiser penalty is real</h2>
         <div class="grid grid-3">
           <div class="card">
+            <span class="card-icon">💸</span>
             <h3>One person fronts it</h3>
             <p>Pitch hire, a table booking, a villa deposit — someone pays upfront and spends weeks chasing repayment over text.</p>
           </div>
           <div class="card">
+            <span class="card-icon">🕵️</span>
             <h3>No shared visibility</h3>
             <p>When one person holds the kitty, nobody else can see what it's being spent on — that's how trust breaks down.</p>
           </div>
           <div class="card">
+            <span class="card-icon">📉</span>
             <h3>Flat subs don't work</h3>
             <p>Not everyone plays every week, so a flat standing order over-charges some and under-collects for the pitch.</p>
           </div>
@@ -50,8 +100,9 @@
       </div>
     </section>
 
-    <section class="solution">
+    <section id="types" class="solution">
       <div class="container">
+        <span class="eyebrow">The solution</span>
         <h2>Three ways to whip</h2>
         <p class="section-lead">Every wip carries a stated purpose, agreed rules, and a full activity log — nothing leaves the pot quietly.</p>
         <div class="grid grid-3">
@@ -74,17 +125,18 @@
       </div>
     </section>
 
-    <section class="how">
+    <section id="how" class="how">
       <div class="container">
-        <h2>How it works</h2>
-        <div class="grid grid-4">
+        <span class="eyebrow">How it works</span>
+        <h2>From "who owes what" to sorted, in four taps</h2>
+        <div class="grid grid-4 steps">
           <div class="step">
             <span class="step-number">1</span>
             <p>Create a wip, set its type, purpose, and rules.</p>
           </div>
           <div class="step">
             <span class="step-number">2</span>
-            <p>Invite your group — by link, or straight to their WhatsApp.</p>
+            <p>Invite your group — by link, or straight to their phone.</p>
           </div>
           <div class="step">
             <span class="step-number">3</span>
@@ -99,7 +151,9 @@
     </section>
 
     <section id="waitlist" class="waitlist">
+      <div class="waitlist-glow" aria-hidden="true"></div>
       <div class="container">
+        <span class="eyebrow">Early access</span>
         <h2>Be first to whip</h2>
         <p class="section-lead">We're building Wipz right now. Leave your email and we'll let you know the moment it's ready.</p>
         <form id="waitlist-form" class="waitlist-form">
@@ -112,8 +166,9 @@
   </main>
 
   <footer class="footer">
-    <div class="container">
-      <span>© 2026 Wipz</span>
+    <div class="container footer-inner">
+      <span class="logo footer-logo">wipz</span>
+      <span class="footer-copy">© 2026 Wipz. Group spending, without the drama.</span>
     </div>
   </footer>
 

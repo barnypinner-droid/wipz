@@ -427,7 +427,7 @@ section {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  min-height: 320px;
+  min-height: 420px;
   border: 1px solid var(--border);
   transition: transform 0.2s ease;
 }
@@ -478,6 +478,33 @@ section {
   color: rgba(255, 255, 255, 0.85);
   margin: 0;
   font-size: 0.92rem;
+}
+
+.type-card-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.type-card-features li {
+  position: relative;
+  padding-left: 22px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.type-card-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--secondary);
+  font-weight: 700;
+  font-size: 0.8rem;
 }
 
 /* Payments section */

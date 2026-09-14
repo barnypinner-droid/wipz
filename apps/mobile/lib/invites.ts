@@ -31,10 +31,18 @@ function buildSmsUrl(phone: string, message: string) {
 // Records the invite (so "pending invites" and re-invites still work), then
 // hands off to the device's own Messages app with the recipient and message
 // pre-filled — free, no WhatsApp Business account or per-message cost.
-export async function sendWipInvite(whipId: string, phone: string, whipTitle: string) {
+//
+// invitedBy must be the caller's own auth.uid(): the "staff create wip
+// invites" RLS policy requires invited_by = auth.uid() on the inserted row,
+// so leaving it unset makes every insert fail RLS silently (it defaults to
+// null, and null = auth.uid() is never true).
+export async function sendWipInvite(whipId: string, phone: string, whipTitle: string, invitedBy: string) {
   const { error } = await supabase
     .from('wip_invites')
-    .upsert({ whip_id: whipId, phone, status: 'pending' }, { onConflict: 'whip_id,phone' });
+    .upsert(
+      { whip_id: whipId, phone, status: 'pending', invited_by: invitedBy },
+      { onConflict: 'whip_id,phone' },
+    );
   if (error) throw error;
 
   const message =

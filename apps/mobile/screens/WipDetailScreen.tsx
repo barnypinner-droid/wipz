@@ -440,7 +440,7 @@ export function WipDetailScreen({
                 if (existingUser) {
                   await addMemberByUserId(wipId, existingUser.id);
                 } else {
-                  await sendWipInvite(wipId, picked.phone, wip.title);
+                  await sendWipInvite(wipId, picked.phone, wip.title, session.user.id);
                 }
               })
             }
@@ -491,7 +491,7 @@ export function WipDetailScreen({
                 style={styles.smallButton}
                 onPress={() =>
                   runAction(async () => {
-                    await sendWipInvite(wipId, invitePhone.trim(), wip.title);
+                    await sendWipInvite(wipId, invitePhone.trim(), wip.title, session.user.id);
                     setInvitePhone('');
                     setShowInvite(false);
                   })

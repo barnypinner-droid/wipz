@@ -132,6 +132,24 @@ h2 {
   overflow: hidden;
 }
 
+.hero-photo {
+  position: absolute;
+  inset: 0;
+  background-image: url('https://images.unsplash.com/photo-1566915541858-48b56240e292?w=1600&q=70&fm=jpg&fit=crop&auto=format');
+  background-size: cover;
+  background-position: center 35%;
+  filter: grayscale(1) contrast(1.1) brightness(0.5);
+  opacity: 0.4;
+  z-index: 0;
+}
+
+.hero-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 30%, transparent 0%, var(--canvas) 85%);
+}
+
 .hero-glow {
   position: absolute;
   top: -240px;
@@ -160,6 +178,19 @@ h2 {
   padding: 7px 16px;
   border-radius: 999px;
   margin-bottom: 24px;
+}
+
+.hero-tagline {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 18px;
 }
 
 .subhead {

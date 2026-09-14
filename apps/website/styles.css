@@ -351,6 +351,15 @@ section {
   padding: 24px;
 }
 
+/* Cards where the write-up sits at the top of the photo instead of the bottom */
+.type-card-top::after {
+  background: linear-gradient(180deg, rgba(11, 15, 25, 0.75) 0%, rgba(11, 15, 25, 0.35) 45%, rgba(11, 15, 25, 0.05) 100%);
+}
+
+.type-card-top .type-card-body {
+  justify-content: flex-start;
+}
+
 .type-card .tag {
   color: #a5b4fc;
 }

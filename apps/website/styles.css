@@ -820,6 +820,128 @@ section {
   margin-top: -8px;
 }
 
+/* Feedback form */
+.feedback-form {
+  margin-top: 32px;
+}
+
+.feedback-field {
+  border: none;
+  padding: 0;
+  margin: 0 0 36px;
+}
+
+.feedback-field legend {
+  padding: 0;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.feedback-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.feedback-option:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.feedback-option input {
+  accent-color: var(--primary);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.feedback-option:has(input:checked) {
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.feedback-option span {
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
+.feedback-textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.92rem;
+  resize: vertical;
+}
+
+.feedback-textarea::placeholder {
+  color: var(--text-dim);
+}
+
+.feedback-nps-scale {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.feedback-nps-btn {
+  flex: 1;
+  min-width: 36px;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.feedback-nps-btn:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.feedback-nps-btn.selected {
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-color: transparent;
+  color: #fff;
+}
+
+.feedback-nps-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  margin-top: 8px;
+}
+
+.feedback-submit {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 8px;
+}
+
 /* Beta testing page */
 .beta-hero {
   position: relative;

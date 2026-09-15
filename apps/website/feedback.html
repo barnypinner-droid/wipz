@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wipz: Beta Feedback</title>
+  <meta name="description" content="Five quick questions about your experience testing Wipz." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="logo" href="index.html">wipz</a>
+      <nav class="nav-links">
+        <a href="index.html#how">How it works</a>
+        <a href="index.html#types">Payment groups</a>
+        <a href="index.html#pay">Payments</a>
+        <a href="contact.html">Contact</a>
+        <a href="investors.html">Investors</a>
+      </nav>
+      <a class="nav-cta" href="index.html#waitlist">Join the waitlist</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="legal">
+      <div class="container legal-container legal-container-narrow">
+        <span class="eyebrow">Beta feedback</span>
+        <h1>Tell us what you think</h1>
+        <p class="legal-updated">Five questions, about two minutes. Thanks for testing Wipz — be honest, it genuinely shapes what we build and charge.</p>
+
+        <form id="feedback-form" class="feedback-form">
+          <fieldset class="feedback-field">
+            <legend>1. Overall, how easy was Wipz to use?</legend>
+            <div class="feedback-options">
+              <label class="feedback-option"><input type="radio" name="ease_of_use" value="very_easy" required /><span>Very easy</span></label>
+              <label class="feedback-option"><input type="radio" name="ease_of_use" value="easy" /><span>Easy</span></label>
+              <label class="feedback-option"><input type="radio" name="ease_of_use" value="ok" /><span>OK</span></label>
+              <label class="feedback-option"><input type="radio" name="ease_of_use" value="difficult" /><span>A bit difficult</span></label>
+              <label class="feedback-option"><input type="radio" name="ease_of_use" value="very_difficult" /><span>Very difficult</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="feedback-field">
+            <legend>2. What's the one thing that annoyed you or didn't work as expected?</legend>
+            <textarea name="biggest_issue" class="feedback-textarea" rows="3" placeholder="Optional — but this is the most useful answer for us"></textarea>
+          </fieldset>
+
+          <fieldset class="feedback-field">
+            <legend>3. Compared to how you currently split costs (bank transfer, WhatsApp, cash), would you use Wipz instead?</legend>
+            <div class="feedback-options">
+              <label class="feedback-option"><input type="radio" name="would_switch" value="yes" required /><span>Yes, definitely</span></label>
+              <label class="feedback-option"><input type="radio" name="would_switch" value="probably" /><span>Probably</span></label>
+              <label class="feedback-option"><input type="radio" name="would_switch" value="not_sure" /><span>Not sure</span></label>
+              <label class="feedback-option"><input type="radio" name="would_switch" value="no" /><span>No</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="feedback-field">
+            <legend>4. If Wipz charged a small fee on money paid into a pot, what's the most you'd be comfortable with?</legend>
+            <div class="feedback-options">
+              <label class="feedback-option"><input type="radio" name="fee_tolerance" value="none" required /><span>I wouldn't use it if there's a fee</span></label>
+              <label class="feedback-option"><input type="radio" name="fee_tolerance" value="one_percent" /><span>1%</span></label>
+              <label class="feedback-option"><input type="radio" name="fee_tolerance" value="two_percent" /><span>2%</span></label>
+              <label class="feedback-option"><input type="radio" name="fee_tolerance" value="three_percent" /><span>3%</span></label>
+              <label class="feedback-option"><input type="radio" name="fee_tolerance" value="more_than_three" /><span>More than 3% — I'd pay for reliability and transparency</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="feedback-field">
+            <legend>5. How likely are you to recommend Wipz to your group or team?</legend>
+            <div class="feedback-nps" id="nps-group">
+              <div class="feedback-nps-scale"></div>
+              <div class="feedback-nps-labels">
+                <span>Not likely</span>
+                <span>Very likely</span>
+              </div>
+            </div>
+            <input type="hidden" name="recommend_score" id="recommend_score" required />
+          </fieldset>
+
+          <button type="submit" class="button button-primary feedback-submit">Send feedback</button>
+          <p id="feedback-status" class="waitlist-message" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <a class="logo footer-logo" href="index.html">wipz</a>
+      <nav class="footer-links">
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="contact.html">Contact</a>
+        <a href="investors.html">Investors</a>
+      </nav>
+      <span class="footer-copy">© 2026 Wipz. Group spending, without the drama.</span>
+    </div>
+  </footer>
+
+  <script src="feedback-form.js"></script>
+</body>
+</html>

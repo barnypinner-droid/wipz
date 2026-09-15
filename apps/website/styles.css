@@ -754,6 +754,38 @@ section {
   max-width: 560px;
 }
 
+.confirmed-container {
+  text-align: center;
+}
+
+.confirmed-container .eyebrow {
+  text-align: center;
+}
+
+.confirmed-container h1 {
+  text-align: center;
+}
+
+.confirmed-container .legal-updated {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.confirmed-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 30px rgba(99, 102, 241, 0.4);
+}
+
 .contact-card {
   display: flex;
   flex-direction: column;

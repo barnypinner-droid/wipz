@@ -34,7 +34,7 @@ form.addEventListener('submit', async (event) => {
       throw new Error('Signup failed');
     }
   } catch {
-    message.textContent = 'Something went wrong — please try again.';
+    message.textContent = 'Something went wrong. Please try again.';
     message.className = 'waitlist-message error';
   } finally {
     button.disabled = false;

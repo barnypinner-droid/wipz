@@ -32,7 +32,7 @@ export function BiometricLockScreen({ onUnlocked }: { onUnlocked: () => void }) 
         </Pressable>
       )}
 
-      {error && <Text style={styles.error}>Couldn't verify — try again.</Text>}
+      {error && <Text style={styles.error}>Couldn't verify. Try again.</Text>}
     </View>
   );
 }

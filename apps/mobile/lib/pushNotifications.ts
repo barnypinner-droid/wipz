@@ -15,7 +15,7 @@ Notifications.setNotificationHandler({
 
 // Registers this device for push notifications and saves the Expo push
 // token against the signed-in user, so send-nudge can reach them directly.
-// Requires an EAS project link (eas init) and a custom dev/production build —
+// Requires an EAS project link (eas init) and a custom dev/production build,
 // Expo Go does not support remote push on this SDK, so this is a no-op there.
 export async function registerForPushNotifications(userId: string) {
   if (!Device.isDevice) {
@@ -45,7 +45,7 @@ export async function registerForPushNotifications(userId: string) {
     Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
   if (!projectId) {
-    console.log('No EAS project ID configured yet — run `eas init` to enable push tokens.');
+    console.log('No EAS project ID configured yet, run `eas init` to enable push tokens.');
     return;
   }
 

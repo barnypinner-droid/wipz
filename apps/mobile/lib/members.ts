@@ -25,7 +25,7 @@ export async function addMemberByEmail(
   });
   if (lookupError) throw lookupError;
   if (!matches || matches.length === 0) {
-    throw new Error('No Wipz user found with that email — they need to sign up first.');
+    throw new Error('No Wipz user found with that email. They need to sign up first.');
   }
 
   const { error: insertError } = await supabase.from('wip_members').insert({

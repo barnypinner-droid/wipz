@@ -200,7 +200,7 @@ export function WipDetailScreen({
   );
 
   // Sets up a "£X a month for N months" instalment plan: saves a payment
-  // method via a SetupIntent (not a payment — nothing is charged yet), then
+  // method via a SetupIntent (not a payment, nothing is charged yet), then
   // records the plan. charge-due-plans (a daily cron job) takes it from
   // there, charging the saved card/Bacs mandate each month automatically.
   const setupInstalmentPlan = useCallback(
@@ -316,7 +316,7 @@ export function WipDetailScreen({
         </Pressable>
       )}
 
-      {/* Instalment plans — savings-goal wips only */}
+      {/* Instalment plans: savings-goal wips only */}
       {wip.type === 'savings_goal' && (
         <View>
           <Text style={styles.sectionTitle}>Instalment plans</Text>

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -42,6 +44,8 @@ export function CreateWhipScreen({
   const [addingMember, setAddingMember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedType = WIP_TYPES.find((option) => option.value === type)!;
 
   function addRuleToList() {
     const text = ruleInput.trim();
@@ -147,11 +151,14 @@ export function CreateWhipScreen({
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <Text style={styles.title}>New Wip</Text>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ImageBackground
+        source={{ uri: 'https://images.unsplash.com/photo-1566915541858-48b56240e292?w=1200&q=60&fm=jpg&fit=crop&auto=format' }}
+        style={styles.flex}
+      >
+        <View style={styles.overlay} />
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>New Wip</Text>
 
       <View style={styles.typeRow}>
         {WIP_TYPES.map((option) => (
@@ -168,18 +175,27 @@ export function CreateWhipScreen({
           </Pressable>
         ))}
       </View>
-      <Text style={styles.typeHint}>{WIP_TYPES.find((option) => option.value === type)?.hint}</Text>
+      <Text style={styles.typeHint}>{selectedType.hint}</Text>
+
+      <View style={styles.featuresBox}>
+        {selectedType.features.map((feature) => (
+          <View key={feature} style={styles.featureRow}>
+            <Text style={styles.featureCheck}>✓</Text>
+            <Text style={styles.featureText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
 
       <TextInput
         style={styles.input}
-        placeholder={WIP_TYPES.find((option) => option.value === type)?.titlePlaceholder}
+        placeholder={selectedType.titlePlaceholder}
         placeholderTextColor="#64748b"
         value={title}
         onChangeText={setTitle}
       />
       <TextInput
         style={styles.input}
-        placeholder={WIP_TYPES.find((option) => option.value === type)?.purposePlaceholder}
+        placeholder={selectedType.purposePlaceholder}
         placeholderTextColor="#64748b"
         value={purpose}
         onChangeText={setPurpose}
@@ -246,16 +262,53 @@ export function CreateWhipScreen({
       <Pressable onPress={onCancel} disabled={loading}>
         <Text style={styles.cancelText}>Cancel</Text>
       </Pressable>
+        </ScrollView>
+      </ImageBackground>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    backgroundColor: Colors.canvas,
-    justifyContent: 'center',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(11, 15, 25, 0.88)',
+  },
+  container: {
     paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  featuresBox: {
+    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 6,
+  },
+  featureCheck: {
+    color: Colors.secondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  featureText: {
+    flex: 1,
+    color: '#e2e8f0',
+    fontSize: 13,
+    lineHeight: 18,
   },
   title: {
     color: '#fff',

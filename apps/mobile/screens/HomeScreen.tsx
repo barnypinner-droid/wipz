@@ -6,6 +6,8 @@ import type { Tables } from '../lib/database.types';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES } from '../constants/wipTypes';
 import { listMyPendingInvites, acceptWipInvite, type PendingInvite } from '../lib/invites';
+import { TypeCarousel } from '../components/TypeCarousel';
+import { HowItWorks } from '../components/HowItWorks';
 
 type Whip = Tables<'whips'>;
 
@@ -156,7 +158,20 @@ export function HomeScreen({
             {item.deadline && <Text style={styles.cardDeadline}>By {item.deadline}</Text>}
           </Pressable>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No wipz yet — create your first one.</Text>}
+        ListEmptyComponent={
+          <View>
+            <Text style={styles.emptyTitle}>Three ways to wipz</Text>
+            <Text style={styles.emptyLead}>
+              A wipz pot is a shared pot for your group, pre-funded and fully transparent. No more one
+              person fronting it and chasing everyone else for money. Swipe to see the three types.
+            </Text>
+            <TypeCarousel />
+            <HowItWorks />
+            <Pressable style={styles.emptyCreateButton} onPress={onCreateWhip}>
+              <Text style={styles.emptyCreateButtonText}>Create your first wipz pot</Text>
+            </Pressable>
+          </View>
+        }
       />
 
       <Pressable style={styles.signOut} onPress={() => supabase.auth.signOut()}>
@@ -304,10 +319,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  empty: {
-    color: '#64748b',
-    textAlign: 'center',
-    marginTop: 40,
+  emptyTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 12,
+  },
+  emptyLead: {
+    color: '#94a3b8',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  emptyCreateButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 28,
+  },
+  emptyCreateButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
   },
   signOut: {
     paddingVertical: 16,

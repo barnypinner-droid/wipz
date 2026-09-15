@@ -23,14 +23,14 @@ export async function listWipInvites(whipId: string): Promise<WipInvite[]> {
 
 function buildSmsUrl(phone: string, message: string) {
   const encodedMessage = encodeURIComponent(message);
-  // iOS wants "&body=", Android wants "?body=" — same sms: scheme, different separator.
+  // iOS wants "&body=", Android wants "?body=", same sms: scheme, different separator.
   const separator = Platform.OS === 'ios' ? '&' : '?';
   return `sms:${phone}${separator}body=${encodedMessage}`;
 }
 
 // Records the invite (so "pending invites" and re-invites still work), then
 // hands off to the device's own Messages app with the recipient and message
-// pre-filled — free, no WhatsApp Business account or per-message cost.
+// pre-filled, free, no WhatsApp Business account or per-message cost.
 //
 // invitedBy must be the caller's own auth.uid(): the "staff create wip
 // invites" RLS policy requires invited_by = auth.uid() on the inserted row,

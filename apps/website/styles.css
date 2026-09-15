@@ -820,6 +820,93 @@ section {
   margin-top: -8px;
 }
 
+/* Beta testing page */
+.beta-hero {
+  position: relative;
+  padding: 120px 0 60px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.beta-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.beta-step {
+  border-top: 1px solid var(--border);
+}
+
+.beta-step-alt {
+  background: var(--surface);
+}
+
+.beta-download-card,
+.beta-feedback-card {
+  max-width: 480px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+
+.beta-download-button {
+  width: 100%;
+  text-align: center;
+}
+
+.beta-steps-list {
+  text-align: left;
+  color: var(--text-muted);
+  margin: 28px 0 0;
+  padding-left: 22px;
+  line-height: 1.7;
+}
+
+.beta-steps-list li {
+  margin-bottom: 10px;
+}
+
+.beta-steps-list strong {
+  color: var(--text);
+}
+
+.beta-checklist {
+  max-width: 480px;
+  margin: 40px auto 0;
+}
+
+.beta-note {
+  max-width: 480px;
+  margin: 32px auto 0;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 24px;
+  text-align: left;
+}
+
+.beta-note-label {
+  display: block;
+  color: var(--secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.beta-note p {
+  color: var(--text-muted);
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.beta-feedback-note {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+
 @media (max-width: 800px) {
   .grid-4,
   .type-grid,

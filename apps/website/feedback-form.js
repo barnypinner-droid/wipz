@@ -56,7 +56,12 @@ form.addEventListener('submit', async (event) => {
 
     if (res.ok) {
       form.hidden = true;
-      status.textContent = "Thanks — that's genuinely useful. We'll use this to shape what we build and charge.";
+      status.textContent = "Thanks — that's genuinely useful. We'll use this to shape what we build and charge. ";
+      const waitlistLink = document.createElement('a');
+      waitlistLink.href = 'index.html#waitlist';
+      waitlistLink.textContent = 'Want to be first in line for full launch? Join the waitlist →';
+      waitlistLink.className = 'feedback-waitlist-link';
+      status.appendChild(waitlistLink);
     } else {
       throw new Error('Submission failed');
     }

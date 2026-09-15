@@ -942,6 +942,13 @@ section {
   margin-top: 8px;
 }
 
+.feedback-waitlist-link {
+  display: block;
+  margin-top: 12px;
+  color: var(--secondary);
+  font-weight: 600;
+}
+
 /* Beta testing page */
 .beta-hero {
   position: relative;

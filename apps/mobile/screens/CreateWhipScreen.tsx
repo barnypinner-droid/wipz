@@ -14,6 +14,13 @@ import { supabase } from '../lib/supabase';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES, type WipType } from '../constants/wipTypes';
 import { DatePickerField } from '../components/DatePickerField';
+import { pickContactPhone } from '../lib/contacts';
+import { findUserByPhone, addMemberByUserId } from '../lib/members';
+import { sendWipInvite } from '../lib/invites';
+
+// A person picked before the wip exists: either a Wipz user we can add
+// directly, or a phone number to invite once the wip has been created.
+type PendingMember = { key: string; name: string; userId?: string; phone?: string };
 
 export function CreateWhipScreen({
   session,
@@ -31,6 +38,8 @@ export function CreateWhipScreen({
   const [deadline, setDeadline] = useState('');
   const [rules, setRules] = useState<string[]>([]);
   const [ruleInput, setRuleInput] = useState('');
+  const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
+  const [addingMember, setAddingMember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +52,33 @@ export function CreateWhipScreen({
 
   function removeRuleFromList(index: number) {
     setRules((current) => current.filter((_, i) => i !== index));
+  }
+
+  async function addMemberFromContacts() {
+    setAddingMember(true);
+    try {
+      const picked = await pickContactPhone();
+      if (!picked) return;
+
+      const existingUser = await findUserByPhone(picked.phone);
+      setPendingMembers((current) => [
+        ...current,
+        {
+          key: picked.phone,
+          name: picked.name,
+          userId: existingUser?.id,
+          phone: existingUser ? undefined : picked.phone,
+        },
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not add that contact.');
+    } finally {
+      setAddingMember(false);
+    }
+  }
+
+  function removePendingMember(key: string) {
+    setPendingMembers((current) => current.filter((m) => m.key !== key));
   }
 
   async function handleCreate() {
@@ -82,12 +118,27 @@ export function CreateWhipScreen({
 
     if (rules.length > 0) {
       // Non-fatal: the wip already exists, so a rules failure shouldn't
-      // strand the user — they can always add rules from the edit screen.
+      // strand the user, they can always add rules from the edit screen.
       const { error: rulesError } = await supabase
         .from('wip_rules')
         .insert(rules.map((rule_text) => ({ whip_id: newWip.id, rule_text })));
       if (rulesError) {
         console.log('Failed to save rules', rulesError);
+      }
+    }
+
+    // Same non-fatal approach as rules: members picked before creation get
+    // added now that the wip has an id, but a failure on any one of them
+    // shouldn't strand the user, they can always add people afterward.
+    for (const member of pendingMembers) {
+      try {
+        if (member.userId) {
+          await addMemberByUserId(newWip.id, member.userId);
+        } else if (member.phone) {
+          await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id);
+        }
+      } catch (err) {
+        console.log('Failed to add member', member.name, err);
       }
     }
 
@@ -121,14 +172,14 @@ export function CreateWhipScreen({
 
       <TextInput
         style={styles.input}
-        placeholder="Title (e.g. Five-a-side)"
+        placeholder={WIP_TYPES.find((option) => option.value === type)?.titlePlaceholder}
         placeholderTextColor="#64748b"
         value={title}
         onChangeText={setTitle}
       />
       <TextInput
         style={styles.input}
-        placeholder="Purpose (e.g. Weekly pitch hire)"
+        placeholder={WIP_TYPES.find((option) => option.value === type)?.purposePlaceholder}
         placeholderTextColor="#64748b"
         value={purpose}
         onChangeText={setPurpose}
@@ -144,6 +195,24 @@ export function CreateWhipScreen({
       {type === 'savings_goal' && (
         <DatePickerField value={deadline} onChange={setDeadline} placeholder="Deadline" minimumDate={new Date()} />
       )}
+
+      <Text style={styles.sectionTitle}>Members (optional)</Text>
+      {pendingMembers.map((member) => (
+        <View key={member.key} style={styles.ruleRow}>
+          <Text style={styles.ruleText}>
+            {member.name}
+            {!member.userId && ' (will be invited)'}
+          </Text>
+          <Pressable onPress={() => removePendingMember(member.key)}>
+            <Text style={styles.removeLink}>Remove</Text>
+          </Pressable>
+        </View>
+      ))}
+      <Pressable onPress={addMemberFromContacts} disabled={addingMember}>
+        <Text style={styles.addMemberLink}>
+          {addingMember ? 'Opening contacts...' : '+ Add from contacts'}
+        </Text>
+      </Pressable>
 
       <Text style={styles.sectionTitle}>Rules (optional)</Text>
       {rules.map((rule, index) => (
@@ -256,6 +325,11 @@ const styles = StyleSheet.create({
   removeLink: {
     color: '#f87171',
     fontSize: 12,
+  },
+  addMemberLink: {
+    color: Colors.secondary,
+    fontSize: 14,
+    marginBottom: 20,
   },
   ruleInputRow: {
     flexDirection: 'row',

@@ -276,6 +276,7 @@ export function WipDetailScreen({
       <Text style={styles.typeBadge}>{WIP_TYPES.find((t) => t.value === wip.type)?.label ?? wip.type}</Text>
       <Text style={styles.purpose}>{wip.purpose}</Text>
       {wip.deadline && <Text style={styles.deadline}>By {wip.deadline}</Text>}
+      <Text style={styles.typeHint}>{WIP_TYPES.find((t) => t.value === wip.type)?.hint}</Text>
 
       <ProgressRing current={wip.current_balance} target={wip.target_balance} />
 
@@ -331,7 +332,7 @@ export function WipDetailScreen({
               <Text style={styles.rowMeta}>
                 {plan.status === 'active' && `${plan.installments_paid} of ${plan.total_installments} paid`}
                 {plan.status === 'completed' && 'completed'}
-                {plan.status === 'failed' && 'payment failed — needs attention'}
+                {plan.status === 'failed' && 'payment failed, needs attention'}
                 {plan.status === 'cancelled' && 'cancelled'}
               </Text>
               {plan.user_id === session.user.id && plan.status === 'active' && (
@@ -657,7 +658,7 @@ export function WipDetailScreen({
       ) : isStaff ? (
         <>
           <Text style={styles.emptyText}>
-            No card yet. Note: this requires Stripe Issuing to be enabled on the account — if it isn't yet, this
+            No card yet. Note: this requires Stripe Issuing to be enabled on the account. If it isn't yet, this
             will show an error explaining how to enable it.
           </Text>
           {showCardForm ? (
@@ -684,7 +685,7 @@ export function WipDetailScreen({
                 onChangeText={setBillingPostalCode}
               />
               <Text style={styles.emptyText}>
-                Only needed the first time you provision a card — it registers you as the cardholder with Stripe.
+                Only needed the first time you provision a card, it registers you as the cardholder with Stripe.
               </Text>
               <Pressable
                 style={styles.smallButton}
@@ -773,7 +774,7 @@ export function WipDetailScreen({
             .map((request) => (
               <View key={request.id} style={styles.row}>
                 <Text style={styles.rowText}>
-                  {formatPence(request.amount)} — {request.description}
+                  {formatPence(request.amount)}: {request.description}
                 </Text>
                 <Pressable
                   style={styles.smallButton}
@@ -793,7 +794,7 @@ export function WipDetailScreen({
         <View key={transaction.id} style={styles.transactionRow}>
           <View style={styles.transactionHeader}>
             <Text style={styles.rowText}>
-              {transaction.type === 'withdrawal' ? 'Spent' : 'Deposited'} {formatPence(transaction.amount)} —{' '}
+              {transaction.type === 'withdrawal' ? 'Spent' : 'Deposited'} {formatPence(transaction.amount)}:{' '}
               {transaction.description}
             </Text>
             {transaction.flagged && <Text style={styles.flaggedBadge}>FLAGGED</Text>}
@@ -841,7 +842,7 @@ export function WipDetailScreen({
                 runAction(() =>
                   sendNudge(
                     wipId,
-                    `Reminder: please top up ${formatPence(transaction.amount)} for "${transaction.description}" — flagged as outside this wip's rules.`,
+                    `Reminder: please top up ${formatPence(transaction.amount)} for "${transaction.description}", flagged as outside this wip's rules.`,
                     transaction.user_id!,
                   ),
                 )
@@ -926,6 +927,12 @@ const styles = StyleSheet.create({
     color: '#64748b',
     fontSize: 13,
     marginTop: 2,
+  },
+  typeHint: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 8,
+    lineHeight: 17,
   },
   editToggle: {
     alignSelf: 'center',

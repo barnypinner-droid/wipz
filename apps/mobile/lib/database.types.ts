@@ -327,6 +327,7 @@ export type Database = {
           created_at: string
           id: string
           invited_by: string | null
+          name: string | null
           phone: string
           status: string
           whip_id: string
@@ -335,6 +336,7 @@ export type Database = {
           created_at?: string
           id?: string
           invited_by?: string | null
+          name?: string | null
           phone: string
           status?: string
           whip_id: string
@@ -343,6 +345,7 @@ export type Database = {
           created_at?: string
           id?: string
           invited_by?: string | null
+          name?: string | null
           phone?: string
           status?: string
           whip_id?: string

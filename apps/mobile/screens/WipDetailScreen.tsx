@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -283,7 +285,12 @@ export function WipDetailScreen({
   const windowClosed = !!wip.active_until && now > new Date(wip.active_until);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
       <Pressable onPress={onBack}>
         <Text style={styles.back}>{'< Back'}</Text>
       </Pressable>
@@ -597,12 +604,15 @@ export function WipDetailScreen({
         <>
           {invites.map((invite) => (
             <View key={invite.id} style={styles.row}>
-              <Text style={styles.rowText}>{invite.phone}</Text>
-              <Text style={styles.rowMeta}>{invite.status === 'accepted' ? 'joined' : 'invited'}</Text>
+              <Text style={styles.rowText}>{invite.name ?? invite.phone}</Text>
+              <Text style={styles.rowMeta}>
+                {invite.status === 'accepted' ? 'joined' : "invited, hasn't paid in yet"}
+              </Text>
             </View>
           ))}
 
           <Pressable
+            style={styles.smallButton}
             onPress={async () => {
               try {
                 const picked = await pickContactPhone();
@@ -619,7 +629,7 @@ export function WipDetailScreen({
               }
             }}
           >
-            <Text style={styles.link}>+ Add from contacts</Text>
+            <Text style={styles.smallButtonText}>+ Add from contacts</Text>
           </Pressable>
 
           {contactToInvite && (
@@ -632,7 +642,7 @@ export function WipDetailScreen({
                     style={styles.smallButton}
                     onPress={() =>
                       runAction(async () => {
-                        await sendWipInvite(wipId, contactToInvite.phone, wip.title, session.user.id, method);
+                        await sendWipInvite(wipId, contactToInvite.phone, wip.title, session.user.id, method, contactToInvite.name);
                         setContactToInvite(null);
                       })
                     }
@@ -964,11 +974,15 @@ export function WipDetailScreen({
           <Text style={styles.link}>+ Nudge everyone still pending</Text>
         </Pressable>
       )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.canvas,

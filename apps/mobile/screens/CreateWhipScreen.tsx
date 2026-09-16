@@ -173,7 +173,7 @@ export function CreateWhipScreen({
         if (member.userId) {
           await addMemberByUserId(newWip.id, member.userId);
         } else if (member.phone) {
-          await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id, member.contactMethod);
+          await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id, member.contactMethod, member.name);
         }
       } catch (err) {
         console.log('Failed to add member', member.name, err);
@@ -185,7 +185,7 @@ export function CreateWhipScreen({
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ImageBackground
         source={{ uri: 'https://images.unsplash.com/photo-1566915541858-48b56240e292?w=1200&q=60&fm=jpg&fit=crop&auto=format' }}
         style={styles.flex}
@@ -318,8 +318,8 @@ export function CreateWhipScreen({
           )}
         </View>
       ))}
-      <Pressable onPress={addMemberFromContacts} disabled={addingMember}>
-        <Text style={styles.addMemberLink}>
+      <Pressable style={styles.addContactButton} onPress={addMemberFromContacts} disabled={addingMember}>
+        <Text style={styles.addContactButtonText}>
           {addingMember ? 'Opening contacts...' : '+ Add from contacts'}
         </Text>
       </Pressable>
@@ -519,10 +519,18 @@ const styles = StyleSheet.create({
     color: '#f87171',
     fontSize: 12,
   },
-  addMemberLink: {
-    color: Colors.secondary,
-    fontSize: 14,
+  addContactButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     marginBottom: 20,
+  },
+  addContactButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   link: {
     color: Colors.secondary,

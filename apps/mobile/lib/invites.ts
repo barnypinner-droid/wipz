@@ -50,11 +50,12 @@ export async function sendWipInvite(
   whipTitle: string,
   invitedBy: string,
   method: ContactMethod = 'sms',
+  name?: string,
 ) {
   const { error } = await supabase
     .from('wip_invites')
     .upsert(
-      { whip_id: whipId, phone, status: 'pending', invited_by: invitedBy },
+      { whip_id: whipId, phone, status: 'pending', invited_by: invitedBy, name: name ?? null },
       { onConflict: 'whip_id,phone' },
     );
   if (error) throw error;

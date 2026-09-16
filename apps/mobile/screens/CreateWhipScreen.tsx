@@ -16,13 +16,21 @@ import { supabase } from '../lib/supabase';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES, type WipType } from '../constants/wipTypes';
 import { DatePickerField } from '../components/DatePickerField';
+import { DateTimePickerField } from '../components/DateTimePickerField';
 import { pickContactPhone } from '../lib/contacts';
 import { findUserByPhone, addMemberByUserId } from '../lib/members';
-import { sendWipInvite } from '../lib/invites';
+import { sendWipInvite, type ContactMethod } from '../lib/invites';
 
 // A person picked before the wip exists: either a Wipz user we can add
 // directly, or a phone number to invite once the wip has been created.
-type PendingMember = { key: string; name: string; userId?: string; phone?: string };
+// contactMethod only applies to the invite case, it's how we'll reach them.
+type PendingMember = {
+  key: string;
+  name: string;
+  userId?: string;
+  phone?: string;
+  contactMethod?: ContactMethod;
+};
 
 export function CreateWhipScreen({
   session,
@@ -36,8 +44,11 @@ export function CreateWhipScreen({
   const [type, setType] = useState<WipType>('ad_hoc');
   const [title, setTitle] = useState('');
   const [purpose, setPurpose] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
+  const [personAmount, setPersonAmount] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [showPaymentWindow, setShowPaymentWindow] = useState(false);
+  const [activeFrom, setActiveFrom] = useState('');
+  const [activeUntil, setActiveUntil] = useState('');
   const [rules, setRules] = useState<string[]>([]);
   const [ruleInput, setRuleInput] = useState('');
   const [pendingMembers, setPendingMembers] = useState<PendingMember[]>([]);
@@ -46,6 +57,9 @@ export function CreateWhipScreen({
   const [error, setError] = useState<string | null>(null);
 
   const selectedType = WIP_TYPES.find((option) => option.value === type)!;
+  const peopleCount = pendingMembers.length + 1;
+  const personPence = Math.round(parseFloat(personAmount) * 100);
+  const totalPence = Number.isFinite(personPence) && personPence > 0 ? personPence * peopleCount : null;
 
   function addRuleToList() {
     const text = ruleInput.trim();
@@ -72,6 +86,7 @@ export function CreateWhipScreen({
           name: picked.name,
           userId: existingUser?.id,
           phone: existingUser ? undefined : picked.phone,
+          contactMethod: existingUser ? undefined : 'sms',
         },
       ]);
     } catch (err) {
@@ -85,16 +100,33 @@ export function CreateWhipScreen({
     setPendingMembers((current) => current.filter((m) => m.key !== key));
   }
 
-  async function handleCreate() {
-    const targetPence = Math.round(parseFloat(targetAmount) * 100);
+  function setPendingMemberContactMethod(key: string, method: ContactMethod) {
+    setPendingMembers((current) => current.map((m) => (m.key === key ? { ...m, contactMethod: method } : m)));
+  }
 
-    if (!title.trim() || !purpose.trim() || !Number.isFinite(targetPence) || targetPence <= 0) {
-      setError('Fill in a title, purpose, and a target amount above £0.');
+  async function handleCreate() {
+    if (!title.trim() || !purpose.trim() || !Number.isFinite(personPence) || personPence <= 0) {
+      setError(`Fill in a title, purpose, and an ${selectedType.amountLabel.toLowerCase()} above £0.`);
+      return;
+    }
+
+    if (pendingMembers.length === 0) {
+      setError('Add at least one other person, every wipz pot needs more than one person in it.');
+      return;
+    }
+
+    if (rules.length === 0) {
+      setError('Add at least one rule so everyone agrees what the pot can be used for.');
       return;
     }
 
     if (type === 'savings_goal' && !deadline) {
       setError('Savings goals need a deadline.');
+      return;
+    }
+
+    if (activeFrom && activeUntil && new Date(activeUntil) <= new Date(activeFrom)) {
+      setError('The payment window needs to close after it opens.');
       return;
     }
 
@@ -107,7 +139,9 @@ export function CreateWhipScreen({
         type,
         title: title.trim(),
         purpose: purpose.trim(),
-        target_balance: targetPence,
+        active_from: activeFrom || null,
+        active_until: activeUntil || null,
+        target_balance: totalPence!,
         creator_id: session.user.id,
         deadline: type === 'savings_goal' ? deadline : null,
       })
@@ -139,7 +173,7 @@ export function CreateWhipScreen({
         if (member.userId) {
           await addMemberByUserId(newWip.id, member.userId);
         } else if (member.phone) {
-          await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id);
+          await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id, member.contactMethod);
         }
       } catch (err) {
         console.log('Failed to add member', member.name, err);
@@ -202,26 +236,86 @@ export function CreateWhipScreen({
       />
       <TextInput
         style={styles.input}
-        placeholder="Target amount (£)"
+        placeholder={selectedType.amountLabel}
         placeholderTextColor="#64748b"
         keyboardType="decimal-pad"
-        value={targetAmount}
-        onChangeText={setTargetAmount}
+        value={personAmount}
+        onChangeText={setPersonAmount}
       />
+      {totalPence != null && (
+        <Text style={styles.totalHint}>
+          £{(totalPence / 100).toFixed(2)} total pot, £{(personPence / 100).toFixed(2)} × {peopleCount}{' '}
+          {peopleCount === 1 ? 'person' : 'people'}
+        </Text>
+      )}
       {type === 'savings_goal' && (
         <DatePickerField value={deadline} onChange={setDeadline} placeholder="Deadline" minimumDate={new Date()} />
       )}
 
-      <Text style={styles.sectionTitle}>Members (optional)</Text>
-      {pendingMembers.map((member) => (
-        <View key={member.key} style={styles.ruleRow}>
-          <Text style={styles.ruleText}>
-            {member.name}
-            {!member.userId && ' (will be invited)'}
+      {showPaymentWindow ? (
+        <View style={styles.paymentWindowBox}>
+          <Text style={styles.sectionHint}>
+            Only take payments and allow card spending in this window, e.g. Saturday night, 6:30pm to 11:30pm.
+            Outside it, the card switches off automatically.
           </Text>
-          <Pressable onPress={() => removePendingMember(member.key)}>
-            <Text style={styles.removeLink}>Remove</Text>
+          <DateTimePickerField value={activeFrom} onChange={setActiveFrom} placeholder="Opens" minimumDate={new Date()} />
+          <DateTimePickerField value={activeUntil} onChange={setActiveUntil} placeholder="Closes" minimumDate={new Date()} />
+          <Pressable
+            onPress={() => {
+              setShowPaymentWindow(false);
+              setActiveFrom('');
+              setActiveUntil('');
+            }}
+          >
+            <Text style={styles.removeLink}>Remove payment window</Text>
           </Pressable>
+        </View>
+      ) : (
+        <Pressable onPress={() => setShowPaymentWindow(true)}>
+          <Text style={styles.link}>+ Only allow payments in a set time window</Text>
+        </Pressable>
+      )}
+
+      <Text style={styles.sectionTitle}>Members</Text>
+      <Text style={styles.sectionHint}>
+        Every wipz pot needs at least one other person in it, add them from your contacts below.
+      </Text>
+      {pendingMembers.map((member) => (
+        <View key={member.key} style={styles.memberPendingRow}>
+          <View style={styles.ruleRow}>
+            <Text style={styles.ruleText}>
+              {member.name}
+              {!member.userId && ' (will be invited)'}
+            </Text>
+            <Pressable onPress={() => removePendingMember(member.key)}>
+              <Text style={styles.removeLink}>Remove</Text>
+            </Pressable>
+          </View>
+          {!member.userId && (
+            <View style={styles.contactMethodRow}>
+              <Text style={styles.contactMethodLabel}>Contact by:</Text>
+              <Pressable onPress={() => setPendingMemberContactMethod(member.key, 'sms')}>
+                <Text
+                  style={[
+                    styles.contactMethodOption,
+                    member.contactMethod === 'sms' && styles.contactMethodOptionActive,
+                  ]}
+                >
+                  Text message
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => setPendingMemberContactMethod(member.key, 'whatsapp')}>
+                <Text
+                  style={[
+                    styles.contactMethodOption,
+                    member.contactMethod === 'whatsapp' && styles.contactMethodOptionActive,
+                  ]}
+                >
+                  WhatsApp
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       ))}
       <Pressable onPress={addMemberFromContacts} disabled={addingMember}>
@@ -230,7 +324,11 @@ export function CreateWhipScreen({
         </Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Rules (optional)</Text>
+      <Text style={styles.sectionTitle}>Rules</Text>
+      <Text style={styles.sectionHint}>
+        Rules say what the pot's money can be used for, so everyone agrees upfront and there's no argument when it's
+        spent. Every wip needs at least one. Example: "{selectedType.ruleExample}".
+      </Text>
       {rules.map((rule, index) => (
         <View key={index} style={styles.ruleRow}>
           <Text style={styles.ruleText}>• {rule}</Text>
@@ -242,7 +340,7 @@ export function CreateWhipScreen({
       <View style={styles.ruleInputRow}>
         <TextInput
           style={[styles.input, styles.ruleInput]}
-          placeholder="e.g. Only pitch hire comes out of this pot"
+          placeholder={`e.g. ${selectedType.ruleExample}`}
           placeholderTextColor="#64748b"
           value={ruleInput}
           onChangeText={setRuleInput}
@@ -348,6 +446,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  totalHint: {
+    color: Colors.secondary,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: -6,
+    marginBottom: 14,
+  },
+  sectionHint: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  memberPendingRow: {
+    marginBottom: 4,
+  },
+  contactMethodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  contactMethodLabel: {
+    color: '#64748b',
+    fontSize: 12,
+  },
+  contactMethodOption: {
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  contactMethodOptionActive: {
+    color: '#fff',
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
   input: {
     backgroundColor: Colors.surface,
     borderWidth: 1,
@@ -382,6 +522,19 @@ const styles = StyleSheet.create({
   addMemberLink: {
     color: Colors.secondary,
     fontSize: 14,
+    marginBottom: 20,
+  },
+  link: {
+    color: Colors.secondary,
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  paymentWindowBox: {
+    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 20,
   },
   ruleInputRow: {

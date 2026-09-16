@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      beta_feedback: {
+        Row: {
+          biggest_issue: string | null
+          created_at: string
+          ease_of_use: string
+          fee_tolerance: string
+          id: string
+          recommend_score: number
+          would_switch: string
+        }
+        Insert: {
+          biggest_issue?: string | null
+          created_at?: string
+          ease_of_use: string
+          fee_tolerance: string
+          id?: string
+          recommend_score: number
+          would_switch: string
+        }
+        Update: {
+          biggest_issue?: string | null
+          created_at?: string
+          ease_of_use?: string
+          fee_tolerance?: string
+          id?: string
+          recommend_score?: number
+          would_switch?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -160,7 +190,11 @@ export type Database = {
       }
       whips: {
         Row: {
+          active_from: string | null
+          active_until: string | null
           approval_threshold: number | null
+          card_active: boolean
+          card_is_fake: boolean
           contribution_amount: number | null
           created_at: string
           creator_id: string | null
@@ -178,7 +212,11 @@ export type Database = {
           type: string
         }
         Insert: {
+          active_from?: string | null
+          active_until?: string | null
           approval_threshold?: number | null
+          card_active?: boolean
+          card_is_fake?: boolean
           contribution_amount?: number | null
           created_at?: string
           creator_id?: string | null
@@ -196,7 +234,11 @@ export type Database = {
           type?: string
         }
         Update: {
+          active_from?: string | null
+          active_until?: string | null
           approval_threshold?: number | null
+          card_active?: boolean
+          card_is_fake?: boolean
           contribution_amount?: number | null
           created_at?: string
           creator_id?: string | null

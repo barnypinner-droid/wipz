@@ -8,6 +8,8 @@ export const WIP_TYPES = [
     hint: 'For a regular weekly cost, like five-a-side subs. Only charges people on weeks they RSVP in.',
     titlePlaceholder: 'Title (e.g. Five-a-side subs)',
     purposePlaceholder: 'Purpose (e.g. Weekly pitch hire)',
+    amountLabel: 'Weekly amount per person (£)',
+    ruleExample: 'Only pitch hire comes out of this pot',
     image: 'https://images.unsplash.com/photo-1632300951015-42d7df909581?w=800&q=65&fm=jpg&fit=crop&auto=format',
     features: [
       "RSVP-gated, only pay when you're in",
@@ -22,6 +24,8 @@ export const WIP_TYPES = [
     hint: 'For a one-off group cost, like a night out. Propose an amount and watch the pot fill.',
     titlePlaceholder: 'Title (e.g. Saturday night out)',
     purposePlaceholder: 'Purpose (e.g. Drinks, taxi, entry)',
+    amountLabel: 'Amount per person (£)',
+    ruleExample: 'Splits evenly between everyone who comes',
     image: 'https://images.unsplash.com/photo-1621112904887-419379ce6824?w=800&q=65&fm=jpg&fit=crop&auto=format',
     features: [
       'Anyone proposes an amount',
@@ -36,6 +40,8 @@ export const WIP_TYPES = [
     hint: 'For saving toward something together, like a group holiday. Locked until you book.',
     titlePlaceholder: 'Title (e.g. Group holiday)',
     purposePlaceholder: 'Purpose (e.g. Flights and villa)',
+    amountLabel: 'Amount per person to save (£)',
+    ruleExample: 'Money only gets spent once everyone agrees on the booking',
     image: 'https://images.unsplash.com/photo-1506869640319-fe1a24fd76dc?w=800&q=65&fm=jpg&fit=crop&auto=format',
     features: [
       'Set a target amount and deadline',

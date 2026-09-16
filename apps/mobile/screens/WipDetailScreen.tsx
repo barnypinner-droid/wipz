@@ -12,7 +12,7 @@ import type { Session } from '@supabase/supabase-js';
 import { usePaymentSheet } from '@stripe/stripe-react-native';
 import { supabase } from '../lib/supabase';
 import { createPaymentIntent } from '../lib/payments';
-import { createWipCard } from '../lib/card';
+import { createWipCard, createFakeWipCard } from '../lib/card';
 import type { Tables } from '../lib/database.types';
 import { Colors } from '../constants/theme';
 import { WIP_TYPES } from '../constants/wipTypes';
@@ -44,7 +44,7 @@ import {
   type WithdrawalRequest,
 } from '../lib/withdrawals';
 import { sendNudge } from '../lib/nudges';
-import { listWipInvites, sendWipInvite, type WipInvite } from '../lib/invites';
+import { listWipInvites, sendWipInvite, type ContactMethod, type WipInvite } from '../lib/invites';
 import {
   createSetupIntent,
   createContributionPlan,
@@ -96,6 +96,7 @@ export function WipDetailScreen({
   const [showAddMember, setShowAddMember] = useState(false);
   const [invitePhone, setInvitePhone] = useState('');
   const [showInvite, setShowInvite] = useState(false);
+  const [contactToInvite, setContactToInvite] = useState<{ name: string; phone: string } | null>(null);
   const [ruleText, setRuleText] = useState('');
   const [showAddRule, setShowAddRule] = useState(false);
   const [occurrenceDate, setOccurrenceDate] = useState(todayISO());
@@ -111,6 +112,7 @@ export function WipDetailScreen({
   const [showContribute, setShowContribute] = useState(false);
   const [paying, setPaying] = useState(false);
   const [showCardForm, setShowCardForm] = useState(false);
+  const [useFakeCard, setUseFakeCard] = useState(false);
   const [billingLine1, setBillingLine1] = useState('');
   const [billingCity, setBillingCity] = useState('');
   const [billingPostalCode, setBillingPostalCode] = useState('');
@@ -243,6 +245,16 @@ export function WipDetailScreen({
   const isStaff = myMembership?.role === 'organiser' || myMembership?.role === 'treasurer';
   const latestOccurrence = occurrences[0];
 
+  function formatWindowTime(value: string) {
+    return new Date(value).toLocaleString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   function paidInBy(userId: string) {
     return transactions
       .filter((t) => t.user_id === userId && t.type === 'contribution' && t.status === 'success')
@@ -266,6 +278,10 @@ export function WipDetailScreen({
     );
   }
 
+  const now = new Date();
+  const windowNotOpenYet = !!wip.active_from && now < new Date(wip.active_from);
+  const windowClosed = !!wip.active_until && now > new Date(wip.active_until);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Pressable onPress={onBack}>
@@ -280,7 +296,21 @@ export function WipDetailScreen({
 
       <ProgressRing current={wip.current_balance} target={wip.target_balance} />
 
-      {showContribute ? (
+      {(wip.active_from || wip.active_until) && (
+        <Text style={styles.windowHint}>
+          Payments open {wip.active_from ? formatWindowTime(wip.active_from) : 'any time'}
+          {wip.active_until ? ` until ${formatWindowTime(wip.active_until)}` : ''}
+          {windowClosed ? ' (closed)' : windowNotOpenYet ? ' (not open yet)' : ''}
+        </Text>
+      )}
+
+      {windowNotOpenYet || windowClosed ? (
+        <View style={styles.windowClosedNotice}>
+          <Text style={styles.windowClosedNoticeText}>
+            {windowClosed ? "This wip's payment window has closed." : "This wip isn't open for payments yet."}
+          </Text>
+        </View>
+      ) : showContribute ? (
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -409,6 +439,10 @@ export function WipDetailScreen({
 
       {/* Rules */}
       <Text style={styles.sectionTitle}>Rules</Text>
+      <Text style={styles.emptyText}>
+        What the pot's money can be used for, so everyone agrees upfront. Example: "
+        {WIP_TYPES.find((t) => t.value === wip.type)?.ruleExample}".
+      </Text>
       {rules.length === 0 && <Text style={styles.emptyText}>No rules set yet.</Text>}
       {rules.map((rule) => (
         <View key={rule.id} style={styles.ruleRow}>
@@ -569,22 +603,49 @@ export function WipDetailScreen({
           ))}
 
           <Pressable
-            onPress={() =>
-              runAction(async () => {
+            onPress={async () => {
+              try {
                 const picked = await pickContactPhone();
                 if (!picked) return;
 
                 const existingUser = await findUserByPhone(picked.phone);
                 if (existingUser) {
-                  await addMemberByUserId(wipId, existingUser.id);
+                  await runAction(() => addMemberByUserId(wipId, existingUser.id));
                 } else {
-                  await sendWipInvite(wipId, picked.phone, wip.title, session.user.id);
+                  setContactToInvite(picked);
                 }
-              })
-            }
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Could not add that contact.');
+              }
+            }}
           >
             <Text style={styles.link}>+ Add from contacts</Text>
           </Pressable>
+
+          {contactToInvite && (
+            <View style={styles.form}>
+              <Text style={styles.rowText}>How should we contact {contactToInvite.name}?</Text>
+              <View style={styles.contactMethodRow}>
+                {(['sms', 'whatsapp'] as ContactMethod[]).map((method) => (
+                  <Pressable
+                    key={method}
+                    style={styles.smallButton}
+                    onPress={() =>
+                      runAction(async () => {
+                        await sendWipInvite(wipId, contactToInvite.phone, wip.title, session.user.id, method);
+                        setContactToInvite(null);
+                      })
+                    }
+                  >
+                    <Text style={styles.smallButtonText}>{method === 'sms' ? 'Text message' : 'WhatsApp'}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable onPress={() => setContactToInvite(null)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+            </View>
+          )}
 
           {showAddMember ? (
             <View style={styles.form}>
@@ -650,43 +711,59 @@ export function WipDetailScreen({
       <Text style={styles.sectionTitle}>Card</Text>
       {wip.stripe_card_id ? (
         <View style={styles.row}>
-          <Text style={styles.rowText}>Virtual card •••• {wip.stripe_card_last4}</Text>
+          <View style={styles.cardRowHeader}>
+            <Text style={styles.rowText}>Virtual card •••• {wip.stripe_card_last4}</Text>
+            {wip.card_is_fake && <Text style={styles.fakeCardBadge}>TEST CARD</Text>}
+          </View>
           <Text style={styles.rowMeta}>
             Expires {wip.stripe_card_exp_month}/{wip.stripe_card_exp_year}
           </Text>
+          {!wip.card_active && (
+            <Text style={styles.rowMeta}>Deactivated, outside this wip's payment window.</Text>
+          )}
         </View>
       ) : isStaff ? (
         <>
           <Text style={styles.emptyText}>
-            No card yet. Note: this requires Stripe Issuing to be enabled on the account. If it isn't yet, this
-            will show an error explaining how to enable it.
+            No card yet. A real card needs Stripe Issuing enabled on the account, if it isn't yet, that will show
+            an error explaining how to enable it. Use a fake test card below to try the feature without it.
           </Text>
           {showCardForm ? (
             <View style={styles.form}>
-              <TextInput
-                style={styles.input}
-                placeholder="Billing address line 1"
-                placeholderTextColor="#64748b"
-                value={billingLine1}
-                onChangeText={setBillingLine1}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="City"
-                placeholderTextColor="#64748b"
-                value={billingCity}
-                onChangeText={setBillingCity}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Postal code"
-                placeholderTextColor="#64748b"
-                value={billingPostalCode}
-                onChangeText={setBillingPostalCode}
-              />
-              <Text style={styles.emptyText}>
-                Only needed the first time you provision a card, it registers you as the cardholder with Stripe.
-              </Text>
+              <Pressable style={styles.fakeCardToggle} onPress={() => setUseFakeCard((v) => !v)}>
+                <Text style={styles.fakeCardToggleText}>
+                  {useFakeCard ? '☑' : '☐'} Use a fake test card instead (no billing details needed)
+                </Text>
+              </Pressable>
+
+              {!useFakeCard && (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Billing address line 1"
+                    placeholderTextColor="#64748b"
+                    value={billingLine1}
+                    onChangeText={setBillingLine1}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="City"
+                    placeholderTextColor="#64748b"
+                    value={billingCity}
+                    onChangeText={setBillingCity}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Postal code"
+                    placeholderTextColor="#64748b"
+                    value={billingPostalCode}
+                    onChangeText={setBillingPostalCode}
+                  />
+                  <Text style={styles.emptyText}>
+                    Only needed the first time you provision a card, it registers you as the cardholder with Stripe.
+                  </Text>
+                </>
+              )}
               <Pressable
                 style={styles.smallButton}
                 disabled={provisioningCard}
@@ -694,11 +771,15 @@ export function WipDetailScreen({
                   runAction(async () => {
                     setProvisioningCard(true);
                     try {
-                      await createWipCard(wipId, {
-                        line1: billingLine1.trim(),
-                        city: billingCity.trim(),
-                        postal_code: billingPostalCode.trim(),
-                      });
+                      if (useFakeCard) {
+                        await createFakeWipCard(wipId);
+                      } else {
+                        await createWipCard(wipId, {
+                          line1: billingLine1.trim(),
+                          city: billingCity.trim(),
+                          postal_code: billingPostalCode.trim(),
+                        });
+                      }
                       setShowCardForm(false);
                     } finally {
                       setProvisioningCard(false);
@@ -709,7 +790,7 @@ export function WipDetailScreen({
                 {provisioningCard ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.smallButtonText}>Get virtual card</Text>
+                  <Text style={styles.smallButtonText}>{useFakeCard ? 'Create fake card' : 'Get virtual card'}</Text>
                 )}
               </Pressable>
             </View>
@@ -934,6 +1015,25 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 17,
   },
+  windowHint: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  windowClosedNotice: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  windowClosedNoticeText: {
+    color: '#64748b',
+    fontSize: 14,
+  },
   editToggle: {
     alignSelf: 'center',
     borderWidth: 1,
@@ -1067,6 +1167,34 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 12,
+  },
+  contactMethodRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  cardRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  fakeCardBadge: {
+    color: Colors.secondary,
+    fontSize: 10,
+    fontWeight: '700',
+    borderWidth: 1,
+    borderColor: Colors.secondary,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  fakeCardToggle: {
+    marginBottom: 12,
+  },
+  fakeCardToggleText: {
+    color: '#94a3b8',
+    fontSize: 13,
   },
   input: {
     backgroundColor: Colors.surface,

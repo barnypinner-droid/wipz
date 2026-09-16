@@ -21,6 +21,8 @@ export async function listWipInvites(whipId: string): Promise<WipInvite[]> {
   return data ?? [];
 }
 
+export type ContactMethod = 'sms' | 'whatsapp';
+
 function buildSmsUrl(phone: string, message: string) {
   const encodedMessage = encodeURIComponent(message);
   // iOS wants "&body=", Android wants "?body=", same sms: scheme, different separator.
@@ -28,15 +30,27 @@ function buildSmsUrl(phone: string, message: string) {
   return `sms:${phone}${separator}body=${encodedMessage}`;
 }
 
+function buildWhatsAppUrl(phone: string, message: string) {
+  // wa.me wants digits only, no "+".
+  const digits = phone.replace(/[^\d]/g, '');
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
+
 // Records the invite (so "pending invites" and re-invites still work), then
-// hands off to the device's own Messages app with the recipient and message
-// pre-filled, free, no WhatsApp Business account or per-message cost.
+// hands off to the device's own Messages or WhatsApp app with the recipient
+// and message pre-filled, free, no per-message cost either way.
 //
 // invitedBy must be the caller's own auth.uid(): the "staff create wip
 // invites" RLS policy requires invited_by = auth.uid() on the inserted row,
 // so leaving it unset makes every insert fail RLS silently (it defaults to
 // null, and null = auth.uid() is never true).
-export async function sendWipInvite(whipId: string, phone: string, whipTitle: string, invitedBy: string) {
+export async function sendWipInvite(
+  whipId: string,
+  phone: string,
+  whipTitle: string,
+  invitedBy: string,
+  method: ContactMethod = 'sms',
+) {
   const { error } = await supabase
     .from('wip_invites')
     .upsert(
@@ -49,7 +63,7 @@ export async function sendWipInvite(whipId: string, phone: string, whipTitle: st
     `You've been invited to join "${whipTitle}" on Wipz. Download the app, set this as your ` +
     `phone number in your profile, and confirm your spot.`;
 
-  await Linking.openURL(buildSmsUrl(phone, message));
+  await Linking.openURL(method === 'whatsapp' ? buildWhatsAppUrl(phone, message) : buildSmsUrl(phone, message));
 }
 
 export async function listMyPendingInvites(): Promise<PendingInvite[]> {

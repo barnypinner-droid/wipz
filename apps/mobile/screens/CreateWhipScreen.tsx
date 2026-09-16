@@ -19,7 +19,7 @@ import { DatePickerField } from '../components/DatePickerField';
 import { DateTimePickerField } from '../components/DateTimePickerField';
 import { pickContactPhone } from '../lib/contacts';
 import { findUserByPhone, addMemberByUserId } from '../lib/members';
-import { sendWipInvite, type ContactMethod } from '../lib/invites';
+import { sendWipInvite, recordWipInvite, sendBulkSmsInvite, type ContactMethod } from '../lib/invites';
 
 // A person picked before the wip exists: either a Wipz user we can add
 // directly, or a phone number to invite once the wip has been created.
@@ -168,15 +168,32 @@ export function CreateWhipScreen({
     // Same non-fatal approach as rules: members picked before creation get
     // added now that the wip has an id, but a failure on any one of them
     // shouldn't strand the user, they can always add people afterward.
+    // Everyone invited by text is recorded individually but sent as one
+    // combined SMS compose below, rather than opening Messages once per
+    // person, texters get combined; WhatsApp has no multi-recipient deep
+    // link, so those still go out one at a time.
+    const smsPhones: string[] = [];
     for (const member of pendingMembers) {
       try {
         if (member.userId) {
           await addMemberByUserId(newWip.id, member.userId);
         } else if (member.phone) {
-          await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id, member.contactMethod, member.name);
+          if (member.contactMethod === 'whatsapp') {
+            await sendWipInvite(newWip.id, member.phone, title.trim(), session.user.id, 'whatsapp', member.name);
+          } else {
+            await recordWipInvite(newWip.id, member.phone, session.user.id, member.name);
+            smsPhones.push(member.phone);
+          }
         }
       } catch (err) {
         console.log('Failed to add member', member.name, err);
+      }
+    }
+    if (smsPhones.length > 0) {
+      try {
+        await sendBulkSmsInvite(smsPhones, title.trim());
+      } catch (err) {
+        console.log('Failed to open bulk SMS invite', err);
       }
     }
 
@@ -318,6 +335,12 @@ export function CreateWhipScreen({
           )}
         </View>
       ))}
+      {pendingMembers.filter((m) => !m.userId && m.contactMethod === 'sms').length > 1 && (
+        <Text style={styles.sectionHint}>
+          Everyone you're texting gets combined into one message, so they'll see each other's numbers and share one
+          reply thread.
+        </Text>
+      )}
       <Pressable style={styles.addContactButton} onPress={addMemberFromContacts} disabled={addingMember}>
         <Text style={styles.addContactButtonText}>
           {addingMember ? 'Opening contacts...' : '+ Add from contacts'}

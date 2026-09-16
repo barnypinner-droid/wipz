@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -46,7 +47,7 @@ import {
   type WithdrawalRequest,
 } from '../lib/withdrawals';
 import { sendNudge } from '../lib/nudges';
-import { listWipInvites, sendWipInvite, type ContactMethod, type WipInvite } from '../lib/invites';
+import { listWipInvites, sendWipInvite, buildInviteMessage, type ContactMethod, type WipInvite } from '../lib/invites';
 import {
   createSetupIntent,
   createContributionPlan,
@@ -283,6 +284,17 @@ export function WipDetailScreen({
   const now = new Date();
   const windowNotOpenYet = !!wip.active_from && now < new Date(wip.active_from);
   const windowClosed = !!wip.active_until && now > new Date(wip.active_until);
+
+  // Hands off to the OS share sheet rather than any WhatsApp-specific API,
+  // WhatsApp doesn't expose a way to post into or read the members of an
+  // existing group, so the organiser picks the group themselves from here.
+  async function shareInvite() {
+    try {
+      await Share.share({ message: buildInviteMessage(wip!.title) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not open the share sheet.');
+    }
+  }
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -611,26 +623,35 @@ export function WipDetailScreen({
             </View>
           ))}
 
-          <Pressable
-            style={styles.smallButton}
-            onPress={async () => {
-              try {
-                const picked = await pickContactPhone();
-                if (!picked) return;
+          <View style={styles.memberButtonRow}>
+            <Pressable
+              style={styles.smallButton}
+              onPress={async () => {
+                try {
+                  const picked = await pickContactPhone();
+                  if (!picked) return;
 
-                const existingUser = await findUserByPhone(picked.phone);
-                if (existingUser) {
-                  await runAction(() => addMemberByUserId(wipId, existingUser.id));
-                } else {
-                  setContactToInvite(picked);
+                  const existingUser = await findUserByPhone(picked.phone);
+                  if (existingUser) {
+                    await runAction(() => addMemberByUserId(wipId, existingUser.id));
+                  } else {
+                    setContactToInvite(picked);
+                  }
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Could not add that contact.');
                 }
-              } catch (err) {
-                setError(err instanceof Error ? err.message : 'Could not add that contact.');
-              }
-            }}
-          >
-            <Text style={styles.smallButtonText}>+ Add from contacts</Text>
-          </Pressable>
+              }}
+            >
+              <Text style={styles.smallButtonText}>+ Add from contacts</Text>
+            </Pressable>
+            <Pressable style={styles.shareButton} onPress={shareInvite}>
+              <Text style={styles.shareButtonText}>Share invite via WhatsApp</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.emptyText}>
+            Sharing opens WhatsApp so you can pick your own group, but whoever joins that way still needs adding
+            here afterward, WhatsApp doesn't tell us who's in a group.
+          </Text>
 
           {contactToInvite && (
             <View style={styles.form}>
@@ -1226,6 +1247,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     alignSelf: 'flex-start',
+  },
+  memberButtonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
+  shareButton: {
+    backgroundColor: '#25D366',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  shareButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 13,
   },
   smallButtonText: {
     color: '#fff',

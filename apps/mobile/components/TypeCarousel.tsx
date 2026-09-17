@@ -1,14 +1,15 @@
-import { Dimensions, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../constants/theme';
-import { WIP_TYPES } from '../constants/wipTypes';
+import { WIP_TYPES, type WipType } from '../constants/wipTypes';
 
 // Shown on the home screen before someone has any wips yet, so the three
 // group types are explained visually before they've created one. Swipeable
 // rather than stacked so it fits on screen without pushing everything else
-// down, matching the same three photos used on wipzapp.com.
+// down, matching the same three photos used on wipzapp.com. Tapping a card
+// (or its button) jumps straight into creating that type, pre-selected.
 const CARD_WIDTH = Math.min(Dimensions.get('window').width - 64, 320);
 
-export function TypeCarousel() {
+export function TypeCarousel({ onSelect }: { onSelect: (type: WipType) => void }) {
   return (
     <ScrollView
       horizontal
@@ -19,14 +20,21 @@ export function TypeCarousel() {
       contentContainerStyle={styles.scrollContent}
     >
       {WIP_TYPES.map((type) => (
-        <View key={type.value} style={[styles.card, { width: CARD_WIDTH }]}>
+        <Pressable
+          key={type.value}
+          style={[styles.card, { width: CARD_WIDTH }]}
+          onPress={() => onSelect(type.value)}
+        >
           <Image source={{ uri: type.image }} style={styles.image} />
           <View style={styles.overlay} />
           <View style={styles.body}>
             <Text style={styles.tag}>{type.label}</Text>
             <Text style={styles.hint}>{type.hint}</Text>
+            <View style={styles.createButton}>
+              <Text style={styles.createButtonText}>+ Create a {type.label.toLowerCase()} wip</Text>
+            </View>
           </View>
-        </View>
+        </Pressable>
       ))}
     </ScrollView>
   );
@@ -75,5 +83,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 13,
     lineHeight: 18,
+  },
+  createButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  createButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

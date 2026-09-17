@@ -97,6 +97,7 @@ export function WipDetailScreen({
 
   const [memberEmail, setMemberEmail] = useState('');
   const [showAddMember, setShowAddMember] = useState(false);
+  const [inviteName, setInviteName] = useState('');
   const [invitePhone, setInvitePhone] = useState('');
   const [showInvite, setShowInvite] = useState(false);
   const [contactToInvite, setContactToInvite] = useState<{ name: string; phone: string } | null>(null);
@@ -498,8 +499,8 @@ export function WipDetailScreen({
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setShowAddRule(true)}>
-              <Text style={styles.link}>+ Add rule</Text>
+            <Pressable style={styles.smallButton} onPress={() => setShowAddRule(true)}>
+              <Text style={styles.smallButtonText}>+ Add rule</Text>
             </Pressable>
           )}
         </>
@@ -509,8 +510,8 @@ export function WipDetailScreen({
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Members</Text>
         {isStaff && wip.type === 'recurring' && !showAddOccurrence && (
-          <Pressable onPress={() => setShowAddOccurrence(true)}>
-            <Text style={styles.link}>+ Open this week's RSVP</Text>
+          <Pressable style={styles.smallButton} onPress={() => setShowAddOccurrence(true)}>
+            <Text style={styles.smallButtonText}>+ Open this week's RSVP</Text>
           </Pressable>
         )}
       </View>
@@ -702,13 +703,20 @@ export function WipDetailScreen({
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setShowAddMember(true)}>
-              <Text style={styles.link}>+ Add member by email</Text>
+            <Pressable style={styles.smallButton} onPress={() => setShowAddMember(true)}>
+              <Text style={styles.smallButtonText}>+ Add member by email</Text>
             </Pressable>
           )}
 
           {showInvite ? (
             <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Their name"
+                placeholderTextColor="#64748b"
+                value={inviteName}
+                onChangeText={setInviteName}
+              />
               <TextInput
                 style={styles.input}
                 placeholder="+447123456789"
@@ -721,7 +729,15 @@ export function WipDetailScreen({
                 style={styles.smallButton}
                 onPress={() =>
                   runAction(async () => {
-                    await sendWipInvite(wipId, invitePhone.trim(), wip.title, session.user.id);
+                    await sendWipInvite(
+                      wipId,
+                      invitePhone.trim(),
+                      wip.title,
+                      session.user.id,
+                      'sms',
+                      inviteName.trim() || undefined,
+                    );
+                    setInviteName('');
                     setInvitePhone('');
                     setShowInvite(false);
                   })
@@ -731,8 +747,8 @@ export function WipDetailScreen({
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setShowInvite(true)}>
-              <Text style={styles.link}>+ Invite by phone number (no account needed yet)</Text>
+            <Pressable style={styles.smallButton} onPress={() => setShowInvite(true)}>
+              <Text style={styles.smallButtonText}>+ Invite by phone number</Text>
             </Pressable>
           )}
         </>
@@ -826,8 +842,8 @@ export function WipDetailScreen({
               </Pressable>
             </View>
           ) : (
-            <Pressable onPress={() => setShowCardForm(true)}>
-              <Text style={styles.link}>+ Get a virtual card for this wip</Text>
+            <Pressable style={styles.smallButton} onPress={() => setShowCardForm(true)}>
+              <Text style={styles.smallButtonText}>+ Get a virtual card for this wip</Text>
             </Pressable>
           )}
         </>
@@ -877,8 +893,8 @@ export function WipDetailScreen({
               )}
             </View>
           ) : (
-            <Pressable onPress={() => setShowWithdraw(true)}>
-              <Text style={styles.link}>+ Withdraw from this wip</Text>
+            <Pressable style={styles.smallButton} onPress={() => setShowWithdraw(true)}>
+              <Text style={styles.smallButtonText}>+ Withdraw from this wip</Text>
             </Pressable>
           )}
           {withdrawalRequests
@@ -941,8 +957,8 @@ export function WipDetailScreen({
                   </Pressable>
                 </View>
               ) : (
-                <Pressable onPress={() => setFlaggingId(transaction.id)}>
-                  <Text style={styles.link}>Flag as out of rules</Text>
+                <Pressable style={styles.smallButton} onPress={() => setFlaggingId(transaction.id)}>
+                  <Text style={styles.smallButtonText}>Flag as out of rules</Text>
                 </Pressable>
               )}
             </>
@@ -950,6 +966,7 @@ export function WipDetailScreen({
 
           {transaction.flagged && transaction.user_id && (
             <Pressable
+              style={styles.smallButton}
               onPress={() =>
                 runAction(() =>
                   sendNudge(
@@ -960,7 +977,7 @@ export function WipDetailScreen({
                 )
               }
             >
-              <Text style={styles.link}>Remind to top up</Text>
+              <Text style={styles.smallButtonText}>Remind to top up</Text>
             </Pressable>
           )}
         </View>
@@ -991,8 +1008,8 @@ export function WipDetailScreen({
           </Pressable>
         </View>
       ) : (
-        <Pressable onPress={() => setShowNudge(true)}>
-          <Text style={styles.link}>+ Nudge everyone still pending</Text>
+        <Pressable style={styles.smallButton} onPress={() => setShowNudge(true)}>
+          <Text style={styles.smallButtonText}>+ Nudge everyone still pending</Text>
         </Pressable>
       )}
       </ScrollView>
@@ -1287,11 +1304,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     marginTop: 12,
-  },
-  link: {
-    color: Colors.secondary,
-    fontSize: 13,
-    marginBottom: 8,
   },
   emptyText: {
     color: '#64748b',

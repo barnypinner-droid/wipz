@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { Tables } from '../lib/database.types';
 import { Colors } from '../constants/theme';
-import { WIP_TYPES } from '../constants/wipTypes';
+import { WIP_TYPES, type WipType } from '../constants/wipTypes';
 import { listMyPendingInvites, acceptWipInvite, type PendingInvite } from '../lib/invites';
 import { TypeCarousel } from '../components/TypeCarousel';
 import { HowItWorks } from '../components/HowItWorks';
@@ -23,16 +23,15 @@ export function HomeScreen({
   session,
   onCreateWhip,
   onOpenWip,
+  onOpenProfile,
 }: {
   session: Session;
-  onCreateWhip: () => void;
+  onCreateWhip: (initialType?: WipType) => void;
   onOpenWip: (wipId: string) => void;
+  onOpenProfile: () => void;
 }) {
   const [whips, setWhips] = useState<Whip[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [whatsappPhone, setWhatsappPhone] = useState('');
-  const [editingPhone, setEditingPhone] = useState(false);
-  const [savingPhone, setSavingPhone] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
 
   const loadWhips = useCallback(async () => {
@@ -43,37 +42,14 @@ export function HomeScreen({
     if (!error && data) setWhips(data);
   }, []);
 
-  const loadProfile = useCallback(async () => {
-    const { data } = await supabase
-      .from('users')
-      .select('whatsapp_phone')
-      .eq('id', session.user.id)
-      .single();
-    setWhatsappPhone(data?.whatsapp_phone ?? '');
-  }, [session.user.id]);
-
   const loadPendingInvites = useCallback(async () => {
     setPendingInvites(await listMyPendingInvites());
   }, []);
 
   useEffect(() => {
     loadWhips();
-    loadProfile();
     loadPendingInvites();
-  }, [loadWhips, loadProfile, loadPendingInvites]);
-
-  async function saveWhatsappPhone() {
-    setSavingPhone(true);
-    const { error } = await supabase
-      .from('users')
-      .update({ whatsapp_phone: whatsappPhone.trim() || null })
-      .eq('id', session.user.id);
-    setSavingPhone(false);
-    if (!error) {
-      setEditingPhone(false);
-      loadPendingInvites();
-    }
-  }
+  }, [loadWhips, loadPendingInvites]);
 
   async function joinPendingInvite(inviteId: string) {
     await acceptWipInvite(inviteId);
@@ -83,36 +59,18 @@ export function HomeScreen({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Your Wipz</Text>
-          <Text style={styles.headerSubtitle}>{session.user.email}</Text>
-        </View>
-        <Pressable style={styles.addButton} onPress={onCreateWhip}>
-          <Text style={styles.addButtonText}>+ New</Text>
-        </Pressable>
-      </View>
-
-      {editingPhone ? (
-        <View style={styles.phoneRow}>
-          <TextInput
-            style={styles.phoneInput}
-            placeholder="+447123456789"
-            placeholderTextColor="#64748b"
-            keyboardType="phone-pad"
-            value={whatsappPhone}
-            onChangeText={setWhatsappPhone}
-          />
-          <Pressable style={styles.phoneSaveButton} onPress={saveWhatsappPhone} disabled={savingPhone}>
-            <Text style={styles.phoneSaveText}>{savingPhone ? '...' : 'Save'}</Text>
+        <Text style={styles.headerTitle}>Your Wipz</Text>
+        <View style={styles.headerButtons}>
+          <Pressable style={styles.addButton} onPress={() => onCreateWhip()}>
+            <Text style={styles.addButtonText}>+ New</Text>
+          </Pressable>
+          <Pressable style={styles.profileButton} onPress={onOpenProfile}>
+            <Text style={styles.profileButtonText}>
+              {(session.user.email || '?').trim().charAt(0).toUpperCase()}
+            </Text>
           </Pressable>
         </View>
-      ) : (
-        <Pressable style={styles.phoneRow} onPress={() => setEditingPhone(true)}>
-          <Text style={styles.phoneLink}>
-            {whatsappPhone ? `Phone: ${whatsappPhone}` : '+ Add your phone number so people can add/invite you'}
-          </Text>
-        </Pressable>
-      )}
+      </View>
 
       {pendingInvites.length > 0 && (
         <View style={styles.invites}>
@@ -165,18 +123,14 @@ export function HomeScreen({
               A wipz pot is a shared pot for your group, pre-funded and fully transparent. No more one
               person fronting it and chasing everyone else for money. Swipe to see the three types.
             </Text>
-            <TypeCarousel />
+            <TypeCarousel onSelect={onCreateWhip} />
             <HowItWorks />
-            <Pressable style={styles.emptyCreateButton} onPress={onCreateWhip}>
+            <Pressable style={styles.emptyCreateButton} onPress={() => onCreateWhip()}>
               <Text style={styles.emptyCreateButtonText}>Create your first wipz pot</Text>
             </Pressable>
           </View>
         }
       />
-
-      <Pressable style={styles.signOut} onPress={() => supabase.auth.signOut()}>
-        <Text style={styles.signOutText}>Sign out</Text>
-      </Pressable>
     </View>
   );
 }
@@ -191,7 +145,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 20,
   },
   headerTitle: {
@@ -199,10 +153,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
   },
-  headerSubtitle: {
-    color: '#94a3b8',
-    fontSize: 13,
-    marginTop: 2,
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   addButton: {
     backgroundColor: Colors.primary,
@@ -214,36 +168,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  phoneLink: {
-    color: Colors.secondary,
-    fontSize: 13,
-  },
-  phoneInput: {
-    flex: 1,
+  profileButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  phoneSaveButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  phoneSaveText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 13,
+  profileButtonText: {
+    color: Colors.secondary,
+    fontWeight: '700',
+    fontSize: 15,
   },
   invites: {
     marginBottom: 16,
@@ -343,12 +281,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
-  },
-  signOut: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  signOutText: {
-    color: '#64748b',
   },
 });

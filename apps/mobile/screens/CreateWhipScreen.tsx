@@ -34,14 +34,16 @@ type PendingMember = {
 
 export function CreateWhipScreen({
   session,
+  initialType,
   onDone,
   onCancel,
 }: {
   session: Session;
+  initialType?: WipType;
   onDone: (wipId: string) => void;
   onCancel: () => void;
 }) {
-  const [type, setType] = useState<WipType>('ad_hoc');
+  const [type, setType] = useState<WipType>(initialType ?? 'ad_hoc');
   const [title, setTitle] = useState('');
   const [purpose, setPurpose] = useState('');
   const [personAmount, setPersonAmount] = useState('');

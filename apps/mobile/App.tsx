@@ -9,14 +9,17 @@ import { HomeScreen } from './screens/HomeScreen';
 import { CreateWhipScreen } from './screens/CreateWhipScreen';
 import { WipDetailScreen } from './screens/WipDetailScreen';
 import { BiometricLockScreen } from './screens/BiometricLockScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 import { Colors } from './constants/theme';
 import { registerForPushNotifications } from './lib/pushNotifications';
 import { isBiometricLockAvailable } from './lib/biometrics';
+import type { WipType } from './constants/wipTypes';
 
 type Screen =
   | { name: 'home' }
-  | { name: 'create' }
-  | { name: 'detail'; wipId: string; startInEdit?: boolean };
+  | { name: 'create'; initialType?: WipType }
+  | { name: 'detail'; wipId: string; startInEdit?: boolean }
+  | { name: 'profile' };
 
 function AppContent() {
   const { session, loading } = useAuth();
@@ -81,6 +84,7 @@ function AppContent() {
       {screen.name === 'create' && (
         <CreateWhipScreen
           session={session}
+          initialType={screen.initialType}
           onDone={(wipId) => setScreen({ name: 'detail', wipId, startInEdit: true })}
           onCancel={() => setScreen({ name: 'home' })}
         />
@@ -93,11 +97,15 @@ function AppContent() {
           onBack={() => setScreen({ name: 'home' })}
         />
       )}
+      {screen.name === 'profile' && (
+        <ProfileScreen session={session} onBack={() => setScreen({ name: 'home' })} />
+      )}
       {screen.name === 'home' && (
         <HomeScreen
           session={session}
-          onCreateWhip={() => setScreen({ name: 'create' })}
+          onCreateWhip={(initialType) => setScreen({ name: 'create', initialType })}
           onOpenWip={(wipId) => setScreen({ name: 'detail', wipId })}
+          onOpenProfile={() => setScreen({ name: 'profile' })}
         />
       )}
       <StatusBar style="light" />

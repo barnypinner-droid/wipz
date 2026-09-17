@@ -201,6 +201,7 @@ export type Database = {
           current_balance: number
           deadline: string | null
           id: string
+          is_demo: boolean
           purpose: string
           status: string
           stripe_card_exp_month: number | null
@@ -223,6 +224,7 @@ export type Database = {
           current_balance?: number
           deadline?: string | null
           id?: string
+          is_demo?: boolean
           purpose: string
           status?: string
           stripe_card_exp_month?: number | null
@@ -245,6 +247,7 @@ export type Database = {
           current_balance?: number
           deadline?: string | null
           id?: string
+          is_demo?: boolean
           purpose?: string
           status?: string
           stripe_card_exp_month?: number | null

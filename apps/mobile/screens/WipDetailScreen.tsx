@@ -21,6 +21,8 @@ import { Colors } from '../constants/theme';
 import { WIP_TYPES } from '../constants/wipTypes';
 import { ProgressRing } from '../components/ProgressRing';
 import { DatePickerField } from '../components/DatePickerField';
+import { TimePickerField } from '../components/TimePickerField';
+import { DayOfWeekPicker } from '../components/DayOfWeekPicker';
 import {
   listMembers,
   addMemberByEmail,
@@ -72,6 +74,17 @@ function rsvpLabel(status: string | undefined) {
   return 'Pending';
 }
 
+function formatDateShort(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function formatTime(value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
 export function WipDetailScreen({
   wipId,
   session,
@@ -94,6 +107,13 @@ export function WipDetailScreen({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(!!startInEdit);
+
+  const [scheduleDeadline, setScheduleDeadline] = useState('');
+  const [scheduleEventDate, setScheduleEventDate] = useState('');
+  const [scheduleEventEndDate, setScheduleEventEndDate] = useState('');
+  const [scheduleRecurringDay, setScheduleRecurringDay] = useState('');
+  const [scheduleRecurringTime, setScheduleRecurringTime] = useState('');
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   const [memberEmail, setMemberEmail] = useState('');
   const [showAddMember, setShowAddMember] = useState(false);
@@ -166,6 +186,40 @@ export function WipDetailScreen({
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!wip) return;
+    setScheduleDeadline(wip.deadline ?? '');
+    setScheduleEventDate(wip.event_date ?? '');
+    setScheduleEventEndDate(wip.event_end_date ?? '');
+    setScheduleRecurringDay(wip.recurring_day ?? '');
+    setScheduleRecurringTime(wip.recurring_time ?? '');
+  }, [wip]);
+
+  async function saveSchedule() {
+    if (!wip) return;
+    setSavingSchedule(true);
+    setError(null);
+    const updates: Partial<
+      Pick<Whip, 'event_date' | 'event_end_date' | 'deadline' | 'recurring_day' | 'recurring_time'>
+    > = {};
+    if (wip.type === 'ad_hoc') {
+      updates.event_date = scheduleEventDate || null;
+    } else if (wip.type === 'savings_goal') {
+      updates.deadline = scheduleDeadline || null;
+      updates.event_end_date = scheduleEventEndDate || null;
+    } else if (wip.type === 'recurring') {
+      updates.recurring_day = scheduleRecurringDay || null;
+      updates.recurring_time = scheduleRecurringTime || null;
+    }
+    const { error: updateError } = await supabase.from('whips').update(updates).eq('id', wipId);
+    setSavingSchedule(false);
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      await load();
+    }
+  }
 
   const payWithSheet = useCallback(
     async (args: { transactionId: string } | { amount: number }) => {
@@ -311,7 +365,22 @@ export function WipDetailScreen({
       <Text style={styles.title}>{wip.title}</Text>
       <Text style={styles.typeBadge}>{WIP_TYPES.find((t) => t.value === wip.type)?.label ?? wip.type}</Text>
       <Text style={styles.purpose}>{wip.purpose}</Text>
-      {wip.deadline && <Text style={styles.deadline}>By {wip.deadline}</Text>}
+      {wip.type === 'ad_hoc' && wip.event_date && (
+        <Text style={styles.deadline}>Happening {formatDateShort(wip.event_date)}</Text>
+      )}
+      {wip.type === 'savings_goal' && wip.deadline && (
+        <Text style={styles.deadline}>
+          {wip.event_end_date
+            ? `Holiday: ${formatDateShort(wip.deadline)} – ${formatDateShort(wip.event_end_date)}`
+            : `By ${formatDateShort(wip.deadline)}`}
+        </Text>
+      )}
+      {wip.type === 'recurring' && wip.recurring_day && (
+        <Text style={styles.deadline}>
+          Every {wip.recurring_day.charAt(0).toUpperCase() + wip.recurring_day.slice(1)}
+          {wip.recurring_time ? ` at ${formatTime(wip.recurring_time)}` : ''}
+        </Text>
+      )}
       <Text style={styles.typeHint}>{WIP_TYPES.find((t) => t.value === wip.type)?.hint}</Text>
 
       <ProgressRing current={wip.current_balance} target={wip.target_balance} />
@@ -454,6 +523,41 @@ export function WipDetailScreen({
           <Text style={styles.editToggleText}>{editing ? 'Done editing' : 'Edit wip settings'}</Text>
         </Pressable>
       )}
+
+      {editing ? (
+        <View style={styles.scheduleBox}>
+          <Text style={styles.sectionTitle}>
+            {wip.type === 'recurring' ? 'Day and time' : wip.type === 'savings_goal' ? 'Holiday dates' : 'Event date'}
+          </Text>
+          {wip.type === 'ad_hoc' && (
+            <DatePickerField value={scheduleEventDate} onChange={setScheduleEventDate} placeholder="Event date" />
+          )}
+          {wip.type === 'savings_goal' && (
+            <>
+              <DatePickerField value={scheduleDeadline} onChange={setScheduleDeadline} placeholder="Holiday starts" />
+              <DatePickerField
+                value={scheduleEventEndDate}
+                onChange={setScheduleEventEndDate}
+                placeholder="Holiday ends"
+                minimumDate={scheduleDeadline ? new Date(scheduleDeadline) : undefined}
+              />
+            </>
+          )}
+          {wip.type === 'recurring' && (
+            <>
+              <DayOfWeekPicker value={scheduleRecurringDay} onChange={setScheduleRecurringDay} />
+              <TimePickerField value={scheduleRecurringTime} onChange={setScheduleRecurringTime} placeholder="What time" />
+            </>
+          )}
+          <Pressable style={styles.smallButton} disabled={savingSchedule} onPress={saveSchedule}>
+            {savingSchedule ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.smallButtonText}>Save</Text>
+            )}
+          </Pressable>
+        </View>
+      ) : null}
 
       {error && <Text style={styles.error}>{error}</Text>}
 
@@ -1099,6 +1203,14 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     fontWeight: '600',
     fontSize: 13,
+  },
+  scheduleBox: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
   },
   sectionTitle: {
     color: '#fff',

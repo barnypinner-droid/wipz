@@ -17,6 +17,8 @@ import { Colors } from '../constants/theme';
 import { WIP_TYPES, type WipType } from '../constants/wipTypes';
 import { DatePickerField } from '../components/DatePickerField';
 import { DateTimePickerField } from '../components/DateTimePickerField';
+import { TimePickerField } from '../components/TimePickerField';
+import { DayOfWeekPicker } from '../components/DayOfWeekPicker';
 import { pickContactPhone } from '../lib/contacts';
 import { findUserByPhone, addMemberByUserId } from '../lib/members';
 import { sendWipInvite, recordWipInvite, sendBulkSmsInvite, type ContactMethod } from '../lib/invites';
@@ -48,6 +50,10 @@ export function CreateWhipScreen({
   const [purpose, setPurpose] = useState('');
   const [personAmount, setPersonAmount] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventEndDate, setEventEndDate] = useState('');
+  const [recurringDay, setRecurringDay] = useState('');
+  const [recurringTime, setRecurringTime] = useState('');
   const [showPaymentWindow, setShowPaymentWindow] = useState(false);
   const [activeFrom, setActiveFrom] = useState('');
   const [activeUntil, setActiveUntil] = useState('');
@@ -127,6 +133,11 @@ export function CreateWhipScreen({
       return;
     }
 
+    if (type === 'savings_goal' && eventEndDate && new Date(eventEndDate) < new Date(deadline)) {
+      setError('The holiday needs to end on or after it starts.');
+      return;
+    }
+
     if (activeFrom && activeUntil && new Date(activeUntil) <= new Date(activeFrom)) {
       setError('The payment window needs to close after it opens.');
       return;
@@ -146,6 +157,10 @@ export function CreateWhipScreen({
         target_balance: totalPence!,
         creator_id: session.user.id,
         deadline: type === 'savings_goal' ? deadline : null,
+        event_date: type === 'ad_hoc' ? eventDate || null : null,
+        event_end_date: type === 'savings_goal' ? eventEndDate || null : null,
+        recurring_day: type === 'recurring' ? recurringDay || null : null,
+        recurring_time: type === 'recurring' ? recurringTime || null : null,
       })
       .select()
       .single();
@@ -267,8 +282,28 @@ export function CreateWhipScreen({
           {peopleCount === 1 ? 'person' : 'people'}
         </Text>
       )}
+      {type === 'ad_hoc' && (
+        <DatePickerField value={eventDate} onChange={setEventDate} placeholder="Event date (optional)" minimumDate={new Date()} />
+      )}
+
       {type === 'savings_goal' && (
-        <DatePickerField value={deadline} onChange={setDeadline} placeholder="Deadline" minimumDate={new Date()} />
+        <>
+          <DatePickerField value={deadline} onChange={setDeadline} placeholder="Holiday starts" minimumDate={new Date()} />
+          <DatePickerField
+            value={eventEndDate}
+            onChange={setEventEndDate}
+            placeholder="Holiday ends (optional)"
+            minimumDate={deadline ? new Date(deadline) : new Date()}
+          />
+        </>
+      )}
+
+      {type === 'recurring' && (
+        <View style={styles.recurringBox}>
+          <Text style={styles.sectionHint}>What day and time does this happen?</Text>
+          <DayOfWeekPicker value={recurringDay} onChange={setRecurringDay} />
+          <TimePickerField value={recurringTime} onChange={setRecurringTime} placeholder="What time" />
+        </View>
       )}
 
       {showPaymentWindow ? (
@@ -563,6 +598,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   paymentWindowBox: {
+    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+  },
+  recurringBox: {
     backgroundColor: 'rgba(30, 41, 59, 0.85)',
     borderWidth: 1,
     borderColor: Colors.border,

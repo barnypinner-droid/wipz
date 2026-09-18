@@ -200,9 +200,13 @@ export type Database = {
           creator_id: string | null
           current_balance: number
           deadline: string | null
+          event_date: string | null
+          event_end_date: string | null
           id: string
           is_demo: boolean
           purpose: string
+          recurring_day: string | null
+          recurring_time: string | null
           status: string
           stripe_card_exp_month: number | null
           stripe_card_exp_year: number | null
@@ -223,9 +227,13 @@ export type Database = {
           creator_id?: string | null
           current_balance?: number
           deadline?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
           id?: string
           is_demo?: boolean
           purpose: string
+          recurring_day?: string | null
+          recurring_time?: string | null
           status?: string
           stripe_card_exp_month?: number | null
           stripe_card_exp_year?: number | null
@@ -246,9 +254,13 @@ export type Database = {
           creator_id?: string | null
           current_balance?: number
           deadline?: string | null
+          event_date?: string | null
+          event_end_date?: string | null
           id?: string
           is_demo?: boolean
           purpose?: string
+          recurring_day?: string | null
+          recurring_time?: string | null
           status?: string
           stripe_card_exp_month?: number | null
           stripe_card_exp_year?: number | null

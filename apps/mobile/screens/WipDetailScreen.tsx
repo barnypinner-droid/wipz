@@ -49,6 +49,8 @@ import {
   type WithdrawalRequest,
 } from '../lib/withdrawals';
 import { sendNudge } from '../lib/nudges';
+import { getOrCreateGroupConversation, getOrCreateDirectConversation } from '../lib/messages';
+import { setWipRsvp } from '../lib/rsvp';
 import { listWipInvites, sendWipInvite, buildInviteMessage, type ContactMethod, type WipInvite } from '../lib/invites';
 import {
   createSetupIntent,
@@ -90,11 +92,13 @@ export function WipDetailScreen({
   session,
   onBack,
   startInEdit,
+  onOpenThread,
 }: {
   wipId: string;
   session: Session;
   onBack: () => void;
   startInEdit?: boolean;
+  onOpenThread: (conversationId: string, title: string) => void;
 }) {
   const [wip, setWip] = useState<Whip | null>(null);
   const [members, setMembers] = useState<WipMember[]>([]);
@@ -351,6 +355,24 @@ export function WipDetailScreen({
     }
   }
 
+  async function openGroupChat() {
+    try {
+      const conversationId = await getOrCreateGroupConversation(wipId);
+      onOpenThread(conversationId, wip!.title);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not open the group chat.');
+    }
+  }
+
+  async function openMemberThread(userId: string, name: string) {
+    try {
+      const conversationId = await getOrCreateDirectConversation(userId);
+      onOpenThread(conversationId, name);
+    } catch (err) {
+      setError("You're not friends with them yet, add them as a friend first.");
+    }
+  }
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView
@@ -382,6 +404,10 @@ export function WipDetailScreen({
         </Text>
       )}
       <Text style={styles.typeHint}>{WIP_TYPES.find((t) => t.value === wip.type)?.hint}</Text>
+
+      <Pressable style={styles.groupChatButton} onPress={openGroupChat}>
+        <Text style={styles.groupChatButtonText}>💬 Message the group</Text>
+      </Pressable>
 
       <ProgressRing current={wip.current_balance} target={wip.target_balance} />
 
@@ -659,6 +685,15 @@ export function WipDetailScreen({
                 <Text style={styles.rowMeta}>{member.role}</Text>
                 {!isMe && (
                   <Pressable
+                    onPress={() =>
+                      openMemberThread(member.user_id, member.users?.full_name ?? member.users?.email ?? 'Member')
+                    }
+                  >
+                    <Text style={styles.messageLink}>Message</Text>
+                  </Pressable>
+                )}
+                {!isMe && (
+                  <Pressable
                     style={styles.nudgeIcon}
                     onPress={() =>
                       runAction(() =>
@@ -710,6 +745,29 @@ export function WipDetailScreen({
                       <Text style={styles.smallButtonText}>Pay {formatPence(pendingContribution.amount)}</Text>
                     )}
                   </Pressable>
+                )}
+              </>
+            )}
+
+            {(wip.type === 'ad_hoc' || wip.type === 'savings_goal') && (
+              <>
+                {isMe ? (
+                  <View style={styles.rsvpButtons}>
+                    <Pressable
+                      style={[styles.rsvpButton, member.rsvp_status === 'in' && styles.rsvpButtonActiveIn]}
+                      onPress={() => runAction(() => setWipRsvp(wipId, 'in'))}
+                    >
+                      <Text style={styles.rsvpButtonText}>I'm in</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.rsvpButton, member.rsvp_status === 'out' && styles.rsvpButtonActiveOut]}
+                      onPress={() => runAction(() => setWipRsvp(wipId, 'out'))}
+                    >
+                      <Text style={styles.rsvpButtonText}>I'm out</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.rowMeta}>RSVP: {rsvpLabel(member.rsvp_status)}</Text>
                 )}
               </>
             )}
@@ -1189,6 +1247,25 @@ const styles = StyleSheet.create({
   windowClosedNoticeText: {
     color: '#64748b',
     fontSize: 14,
+  },
+  groupChatButton: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  groupChatButtonText: {
+    color: Colors.secondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  messageLink: {
+    color: Colors.secondary,
+    fontSize: 12,
+    fontWeight: '600',
   },
   editToggle: {
     alignSelf: 'center',

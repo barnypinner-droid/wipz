@@ -24,11 +24,13 @@ export function HomeScreen({
   onCreateWhip,
   onOpenWip,
   onOpenProfile,
+  onOpenFriends,
 }: {
   session: Session;
   onCreateWhip: (initialType?: WipType) => void;
   onOpenWip: (wipId: string) => void;
   onOpenProfile: () => void;
+  onOpenFriends: () => void;
 }) {
   const [whips, setWhips] = useState<Whip[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,10 +61,13 @@ export function HomeScreen({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Wipz</Text>
+        <Text style={styles.headerTitle}>your wipz</Text>
         <View style={styles.headerButtons}>
           <Pressable style={styles.addButton} onPress={() => onCreateWhip()}>
             <Text style={styles.addButtonText}>+ New</Text>
+          </Pressable>
+          <Pressable style={styles.friendsButton} onPress={onOpenFriends}>
+            <Text style={styles.friendsButtonText}>Friends</Text>
           </Pressable>
           <Pressable style={styles.profileButton} onPress={onOpenProfile}>
             <Text style={styles.profileButtonText}>
@@ -167,6 +172,19 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  friendsButton: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  friendsButtonText: {
+    color: Colors.secondary,
+    fontWeight: '600',
+    fontSize: 13,
   },
   profileButton: {
     width: 36,

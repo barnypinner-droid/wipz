@@ -28,12 +28,7 @@ export async function addMemberByEmail(
     throw new Error('No Wipz user found with that email. They need to sign up first.');
   }
 
-  const { error: insertError } = await supabase.from('wip_members').insert({
-    whip_id: whipId,
-    user_id: matches[0].id,
-    role,
-  });
-  if (insertError) throw insertError;
+  await addMemberByUserId(whipId, matches[0].id, role);
 }
 
 export async function removeMember(memberRowId: string) {
@@ -47,11 +42,18 @@ export async function findUserByPhone(phone: string): Promise<{ id: string; full
   return data && data.length > 0 ? data[0] : null;
 }
 
+// Being added to the same wip together is treated as a moment of
+// connection, this also accepts an instant friendship between the two of
+// you (see the add_wip_member_and_friend RPC), unlike a plain insert.
 export async function addMemberByUserId(
   whipId: string,
   userId: string,
   role: 'member' | 'treasurer' = 'member',
 ) {
-  const { error } = await supabase.from('wip_members').insert({ whip_id: whipId, user_id: userId, role });
+  const { error } = await supabase.rpc('add_wip_member_and_friend', {
+    p_whip_id: whipId,
+    p_user_id: userId,
+    p_role: role,
+  });
   if (error) throw error;
 }

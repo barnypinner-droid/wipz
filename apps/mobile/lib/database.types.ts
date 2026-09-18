@@ -44,6 +44,146 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          whip_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          whip_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          whip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_whip_id_fkey"
+            columns: ["whip_id"]
+            isOneToOne: false
+            referencedRelation: "whips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
@@ -387,6 +527,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          rsvp_status: string
           user_id: string
           whip_id: string
         }
@@ -394,6 +535,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          rsvp_status?: string
           user_id: string
           whip_id: string
         }
@@ -401,6 +543,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          rsvp_status?: string
           user_id?: string
           whip_id?: string
         }
@@ -667,6 +810,10 @@ export type Database = {
     }
     Functions: {
       accept_wip_invite: { Args: { p_invite_id: string }; Returns: boolean }
+      add_wip_member_and_friend: {
+        Args: { p_role?: string; p_user_id: string; p_whip_id: string }
+        Returns: boolean
+      }
       approve_withdrawal_request: {
         Args: { p_request_id: string }
         Returns: boolean
@@ -701,8 +848,31 @@ export type Database = {
         Args: { p_reason: string; p_transaction_id: string }
         Returns: boolean
       }
+      get_or_create_direct_conversation: {
+        Args: { p_friend_id: string }
+        Returns: string
+      }
+      get_or_create_group_conversation: {
+        Args: { p_whip_id: string }
+        Returns: string
+      }
+      is_conversation_participant: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
       is_wip_member: { Args: { p_whip_id: string }; Returns: boolean }
       is_wip_staff: { Args: { p_whip_id: string }; Returns: boolean }
+      list_my_friends: {
+        Args: never
+        Returns: {
+          email: string
+          friendship_id: string
+          full_name: string
+          i_am_requester: boolean
+          status: string
+          user_id: string
+        }[]
+      }
       list_my_pending_invites: {
         Args: never
         Returns: {
@@ -740,12 +910,42 @@ export type Database = {
         }
         Returns: boolean
       }
+      remove_friend: { Args: { p_user_id: string }; Returns: boolean }
       request_withdrawal: {
         Args: { p_amount: number; p_description: string; p_whip_id: string }
         Returns: string
       }
+      respond_friend_request: {
+        Args: { p_accept: boolean; p_friendship_id: string }
+        Returns: boolean
+      }
+      send_friend_request: {
+        Args: { p_user_id: string }
+        Returns: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+      }
+      send_message: {
+        Args: { p_body: string; p_conversation_id: string }
+        Returns: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          sender_id: string
+        }
+      }
       set_rsvp: {
         Args: { p_occurrence_id: string; p_status: string }
+        Returns: boolean
+      }
+      set_wip_rsvp: {
+        Args: { p_status: string; p_whip_id: string }
         Returns: boolean
       }
     }

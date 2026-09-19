@@ -7,6 +7,9 @@ name: Build Android APK
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,17 +49,23 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: eas build --platform android --profile preview --local --non-interactive --output ./wipz.apk
 
-      - name: Publish APK to Supabase Storage
+      # Supabase Storage's free-tier plan caps individual files at 50MB,
+      # well under this ~90MB APK, and that cap isn't something a bucket
+      # setting can override. A GitHub Release asset has no such limit
+      # (up to 2GB) and this repo is public, so the download link works
+      # for anyone, no login needed, same as the old Expo dashboard link.
+      - name: Publish APK to a GitHub Release
         env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          curl --fail-with-body --show-error \
-            -X POST "https://kumfovowvuicaldtksmc.supabase.co/storage/v1/object/beta-builds/wipz-latest.apk" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "x-upsert: true" \
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary @wipz.apk
+          if gh release view beta-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload beta-latest wipz.apk --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create beta-latest wipz.apk \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Wipz Android Beta" \
+              --notes "Automatically rebuilt by CI. Always the latest Android beta build."
+          fi
 
       - name: Upload build log as artifact
         if: always()

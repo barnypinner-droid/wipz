@@ -25,7 +25,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest runners ship with a full Android SDK preinstalled at
+      # ANDROID_HOME already, the setup-android action tried to install an
+      # extra legacy "tools" package on top of it that no longer exists
+      # in the SDK repository, and just failed outright. Accepting
+      # licenses on the SDK that's already there is all that's needed.
+      - name: Accept Android SDK licenses
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)
+          yes | "$SDKMANAGER" --licenses || true
 
       - name: Install dependencies
         run: npm ci

@@ -50,9 +50,10 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          curl --fail --silent --show-error \
+          curl --fail-with-body --show-error \
             -X POST "https://kumfovowvuicaldtksmc.supabase.co/storage/v1/object/beta-builds/wipz-latest.apk" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "x-upsert: true" \
             -H "Content-Type: application/vnd.android.package-archive" \
             --data-binary @wipz.apk

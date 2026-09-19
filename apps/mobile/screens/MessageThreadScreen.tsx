@@ -18,13 +18,17 @@ import { listMessages, sendMessage, subscribeToMessages, type Message } from '..
 export function MessageThreadScreen({
   conversationId,
   title,
+  whipId,
   session,
   onBack,
+  onOpenWip,
 }: {
   conversationId: string;
   title: string;
+  whipId?: string;
   session: Session;
   onBack: () => void;
+  onOpenWip?: (wipId: string) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [senderNames, setSenderNames] = useState<Record<string, string>>({});
@@ -95,6 +99,11 @@ export function MessageThreadScreen({
           <Text style={styles.back}>{'< Back'}</Text>
         </Pressable>
         <Text style={styles.title}>{title}</Text>
+        {whipId && onOpenWip && (
+          <Pressable onPress={() => onOpenWip(whipId)}>
+            <Text style={styles.viewGroupLink}>View group →</Text>
+          </Pressable>
+        )}
 
         {loading ? (
           <ActivityIndicator color={Colors.primary} style={styles.loadingSpinner} />
@@ -160,6 +169,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 4,
+  },
+  viewGroupLink: {
+    color: Colors.secondary,
+    fontSize: 13,
+    fontWeight: '600',
     marginBottom: 12,
   },
   loadingSpinner: {

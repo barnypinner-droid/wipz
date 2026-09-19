@@ -19,7 +19,7 @@ export function InboxScreen({
   onOpenThread,
 }: {
   onBack: () => void;
-  onOpenThread: (conversationId: string, title: string) => void;
+  onOpenThread: (conversationId: string, title: string, whipId?: string) => void;
 }) {
   const [entries, setEntries] = useState<InboxEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export function InboxScreen({
         (entry.target_type === 'group'
           ? await getOrCreateGroupConversation(entry.target_id)
           : await getOrCreateDirectConversation(entry.target_id));
-      onOpenThread(conversationId, entry.title);
+      onOpenThread(conversationId, entry.title, entry.target_type === 'group' ? entry.target_id : undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not open that conversation.');
     } finally {

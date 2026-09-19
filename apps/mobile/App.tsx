@@ -27,7 +27,7 @@ type Screen =
   | { name: 'profile' }
   | { name: 'friends' }
   | { name: 'inbox' }
-  | { name: 'thread'; conversationId: string; title: string };
+  | { name: 'thread'; conversationId: string; title: string; whipId?: string };
 
 function AppContent() {
   const { session, loading } = useAuth();
@@ -103,7 +103,9 @@ function AppContent() {
           session={session}
           startInEdit={screen.startInEdit}
           onBack={() => setScreen({ name: 'home' })}
-          onOpenThread={(conversationId, title) => setScreen({ name: 'thread', conversationId, title })}
+          onOpenThread={(conversationId, title) =>
+            setScreen({ name: 'thread', conversationId, title, whipId: screen.wipId })
+          }
         />
       )}
       {screen.name === 'profile' && (
@@ -125,15 +127,19 @@ function AppContent() {
       {screen.name === 'inbox' && (
         <InboxScreen
           onBack={() => setScreen({ name: 'home' })}
-          onOpenThread={(conversationId, title) => setScreen({ name: 'thread', conversationId, title })}
+          onOpenThread={(conversationId, title, whipId) =>
+            setScreen({ name: 'thread', conversationId, title, whipId })
+          }
         />
       )}
       {screen.name === 'thread' && (
         <MessageThreadScreen
           conversationId={screen.conversationId}
           title={screen.title}
+          whipId={screen.whipId}
           session={session}
           onBack={() => setScreen({ name: 'home' })}
+          onOpenWip={(wipId) => setScreen({ name: 'detail', wipId })}
         />
       )}
       {screen.name === 'home' && (

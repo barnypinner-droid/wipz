@@ -1,16 +1,18 @@
 import { supabase } from './supabase';
 import type { Tables } from './database.types';
 
-export type Transaction = Tables<'transactions'>;
+export type Transaction = Tables<'transactions'> & {
+  users: Pick<Tables<'users'>, 'full_name' | 'email'> | null;
+};
 
 export async function listTransactions(whipId: string): Promise<Transaction[]> {
   const { data, error } = await supabase
     .from('transactions')
-    .select('*')
+    .select('*, users!transactions_user_id_fkey(full_name, email)')
     .eq('whip_id', whipId)
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data as Transaction[]) ?? [];
 }
 
 export async function flagTransaction(transactionId: string, reason: string) {

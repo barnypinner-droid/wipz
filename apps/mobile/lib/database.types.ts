@@ -279,6 +279,7 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string
           expo_push_token: string | null
@@ -289,6 +290,7 @@ export type Database = {
           whatsapp_phone: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email: string
           expo_push_token?: string | null
@@ -299,6 +301,7 @@ export type Database = {
           whatsapp_phone?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string
           expo_push_token?: string | null
@@ -871,6 +874,17 @@ export type Database = {
           i_am_requester: boolean
           status: string
           user_id: string
+        }[]
+      }
+      list_my_inbox: {
+        Args: never
+        Returns: {
+          conversation_id: string | null
+          last_message: string | null
+          last_message_at: string | null
+          target_id: string
+          target_type: string
+          title: string
         }[]
       }
       list_my_pending_invites: {

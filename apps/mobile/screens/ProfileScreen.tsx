@@ -1,26 +1,44 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Colors } from '../constants/theme';
+import { pickAndUploadAvatar } from '../lib/avatar';
 
 export function ProfileScreen({ session, onBack }: { session: Session; onBack: () => void }) {
   const [fullName, setFullName] = useState('');
   const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [editingPhone, setEditingPhone] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async () => {
     const { data } = await supabase
       .from('users')
-      .select('full_name, whatsapp_phone')
+      .select('full_name, whatsapp_phone, avatar_url')
       .eq('id', session.user.id)
       .single();
     setFullName(data?.full_name ?? '');
     setWhatsappPhone(data?.whatsapp_phone ?? '');
+    setAvatarUrl(data?.avatar_url ?? null);
     setLoading(false);
   }, [session.user.id]);
+
+  async function changePhoto() {
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const url = await pickAndUploadAvatar(session.user.id);
+      if (url) setAvatarUrl(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update your photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   useEffect(() => {
     loadProfile();
@@ -44,12 +62,23 @@ export function ProfileScreen({ session, onBack }: { session: Session; onBack: (
         <Text style={styles.back}>{'< Back'}</Text>
       </Pressable>
 
-      <View style={styles.avatar}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.avatarText}>{initial}</Text>}
-      </View>
+      <Pressable style={styles.avatar} onPress={changePhoto} disabled={uploadingPhoto}>
+        {uploadingPhoto || loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+        ) : (
+          <Text style={styles.avatarText}>{initial}</Text>
+        )}
+      </Pressable>
+      <Pressable onPress={changePhoto} disabled={uploadingPhoto}>
+        <Text style={styles.changePhotoLink}>{avatarUrl ? 'Change photo' : 'Add a photo'}</Text>
+      </Pressable>
 
       <Text style={styles.title}>{fullName || 'Your profile'}</Text>
       <Text style={styles.email}>{session.user.email}</Text>
+
+      {error && <Text style={styles.error}>{error}</Text>}
 
       <Text style={styles.sectionTitle}>Phone number</Text>
       <Text style={styles.sectionHint}>Lets other members add or invite you straight from their contacts.</Text>
@@ -108,6 +137,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 28,
     fontWeight: '700',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 36,
+  },
+  changePhotoLink: {
+    color: Colors.secondary,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  error: {
+    color: '#f87171',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   title: {
     color: '#fff',

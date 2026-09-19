@@ -1084,7 +1084,8 @@ export function WipDetailScreen({
         <View key={transaction.id} style={styles.transactionRow}>
           <View style={styles.transactionHeader}>
             <Text style={styles.rowText}>
-              {transaction.type === 'withdrawal' ? 'Spent' : 'Deposited'} {formatPence(transaction.amount)}:{' '}
+              {transaction.users?.full_name ?? transaction.users?.email ?? 'Someone'}{' '}
+              {transaction.type === 'withdrawal' ? 'spent' : 'deposited'} {formatPence(transaction.amount)}:{' '}
               {transaction.description}
             </Text>
             {transaction.flagged && <Text style={styles.flaggedBadge}>FLAGGED</Text>}

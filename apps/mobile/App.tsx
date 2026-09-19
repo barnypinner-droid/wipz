@@ -12,6 +12,7 @@ import { BiometricLockScreen } from './screens/BiometricLockScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { FriendsScreen } from './screens/FriendsScreen';
 import { MessageThreadScreen } from './screens/MessageThreadScreen';
+import { InboxScreen } from './screens/InboxScreen';
 import { Colors } from './constants/theme';
 import { registerForPushNotifications } from './lib/pushNotifications';
 import { isBiometricLockAvailable } from './lib/biometrics';
@@ -25,6 +26,7 @@ type Screen =
   | { name: 'detail'; wipId: string; startInEdit?: boolean }
   | { name: 'profile' }
   | { name: 'friends' }
+  | { name: 'inbox' }
   | { name: 'thread'; conversationId: string; title: string };
 
 function AppContent() {
@@ -120,6 +122,12 @@ function AppContent() {
           }}
         />
       )}
+      {screen.name === 'inbox' && (
+        <InboxScreen
+          onBack={() => setScreen({ name: 'home' })}
+          onOpenThread={(conversationId, title) => setScreen({ name: 'thread', conversationId, title })}
+        />
+      )}
       {screen.name === 'thread' && (
         <MessageThreadScreen
           conversationId={screen.conversationId}
@@ -135,6 +143,7 @@ function AppContent() {
           onOpenWip={(wipId) => setScreen({ name: 'detail', wipId })}
           onOpenProfile={() => setScreen({ name: 'profile' })}
           onOpenFriends={() => setScreen({ name: 'friends' })}
+          onOpenInbox={() => setScreen({ name: 'inbox' })}
         />
       )}
       <StatusBar style="light" />

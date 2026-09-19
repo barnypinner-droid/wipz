@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import type { Tables } from '../lib/database.types';
@@ -25,16 +25,19 @@ export function HomeScreen({
   onOpenWip,
   onOpenProfile,
   onOpenFriends,
+  onOpenInbox,
 }: {
   session: Session;
   onCreateWhip: (initialType?: WipType) => void;
   onOpenWip: (wipId: string) => void;
   onOpenProfile: () => void;
   onOpenFriends: () => void;
+  onOpenInbox: () => void;
 }) {
   const [whips, setWhips] = useState<Whip[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const loadWhips = useCallback(async () => {
     const { data, error } = await supabase
@@ -48,10 +51,16 @@ export function HomeScreen({
     setPendingInvites(await listMyPendingInvites());
   }, []);
 
+  const loadAvatar = useCallback(async () => {
+    const { data } = await supabase.from('users').select('avatar_url').eq('id', session.user.id).single();
+    setAvatarUrl(data?.avatar_url ?? null);
+  }, [session.user.id]);
+
   useEffect(() => {
     loadWhips();
     loadPendingInvites();
-  }, [loadWhips, loadPendingInvites]);
+    loadAvatar();
+  }, [loadWhips, loadPendingInvites, loadAvatar]);
 
   async function joinPendingInvite(inviteId: string) {
     await acceptWipInvite(inviteId);
@@ -66,13 +75,20 @@ export function HomeScreen({
           <Pressable style={styles.addButton} onPress={() => onCreateWhip()}>
             <Text style={styles.addButtonText}>+ New</Text>
           </Pressable>
+          <Pressable style={styles.friendsButton} onPress={onOpenInbox}>
+            <Text style={styles.friendsButtonText}>💬</Text>
+          </Pressable>
           <Pressable style={styles.friendsButton} onPress={onOpenFriends}>
             <Text style={styles.friendsButtonText}>Friends</Text>
           </Pressable>
           <Pressable style={styles.profileButton} onPress={onOpenProfile}>
-            <Text style={styles.profileButtonText}>
-              {(session.user.email || '?').trim().charAt(0).toUpperCase()}
-            </Text>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.profileButtonImage} />
+            ) : (
+              <Text style={styles.profileButtonText}>
+                {(session.user.email || '?').trim().charAt(0).toUpperCase()}
+              </Text>
+            )}
           </Pressable>
         </View>
       </View>
@@ -200,6 +216,11 @@ const styles = StyleSheet.create({
     color: Colors.secondary,
     fontWeight: '700',
     fontSize: 15,
+  },
+  profileButtonImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
   },
   invites: {
     marginBottom: 16,

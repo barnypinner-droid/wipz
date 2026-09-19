@@ -1,0 +1,58 @@
+name: Build Android APK
+
+# Runs the exact same EAS build pipeline (native prebuild, config plugins,
+# signing) as `eas build`, but compiles on this runner instead of Expo's
+# cloud queue, so it doesn't touch the EAS Build monthly quota. Manual
+# trigger only, run with: gh workflow run build-android.yml
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build Android APK locally
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --profile preview --local --non-interactive --output ./wipz.apk
+
+      - name: Publish APK to Supabase Storage
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "https://kumfovowvuicaldtksmc.supabase.co/storage/v1/object/beta-builds/wipz-latest.apk" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "x-upsert: true" \
+            -H "Content-Type: application/vnd.android.package-archive" \
+            --data-binary @wipz.apk
+
+      - name: Upload build log as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wipz-apk
+          path: apps/mobile/wipz.apk
+          retention-days: 14

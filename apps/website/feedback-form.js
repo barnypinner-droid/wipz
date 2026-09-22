@@ -59,7 +59,7 @@ form.addEventListener('submit', async (event) => {
       status.textContent = "Thanks, that's genuinely useful. We'll use this to shape what we build and charge. ";
       const waitlistLink = document.createElement('a');
       waitlistLink.href = 'index.html#waitlist';
-      waitlistLink.textContent = 'Want to be first in line for full launch? Join the waitlist →';
+      waitlistLink.textContent = 'One last step: join the waitlist to be entered into our iPad prize draw →';
       waitlistLink.className = 'feedback-waitlist-link';
       status.appendChild(waitlistLink);
     } else {

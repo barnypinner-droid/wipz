@@ -179,6 +179,24 @@ h2 {
   margin-bottom: 24px;
 }
 
+.beta-hero-pills {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.beta-hero-pills .pill {
+  margin-bottom: 0;
+}
+
+.pill-prize {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.3);
+  color: #a5f3fc;
+}
+
 .hero-tagline {
   display: block;
   font-weight: 800;

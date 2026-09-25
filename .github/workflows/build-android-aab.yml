@@ -1,0 +1,53 @@
+name: Build Android App Bundle (Play Store)
+
+# Builds the Android App Bundle (.aab) that Google Play requires, using the
+# same local-build pipeline as build-android.yml. Manual trigger only, run
+# with: gh workflow run build-android-aab.yml
+#
+# The .aab is uploaded as a private build artifact only (not a public
+# release) — download it from the workflow run page and upload it yourself
+# to Play Console, since Google requires a human to do the very first
+# upload for a new app through the web UI.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Accept Android SDK licenses
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)
+          yes | "$SDKMANAGER" --licenses || true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Build Android App Bundle locally
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --profile production --local --non-interactive --output ./wipz.aab
+
+      - name: Upload App Bundle as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wipz-aab
+          path: apps/mobile/wipz.aab
+          retention-days: 30

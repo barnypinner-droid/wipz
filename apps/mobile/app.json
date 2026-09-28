@@ -12,7 +12,7 @@
       "bundleIdentifier": "com.wipzapp.wipz"
     },
     "android": {
-      "package": "com.wipzapp.wipz",
+      "package": "com.wipzapp",
       "adaptiveIcon": {
         "backgroundColor": "#0B0F19",
         "foregroundImage": "./assets/android-icon-foreground.png",
